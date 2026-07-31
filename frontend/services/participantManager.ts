@@ -1,269 +1,113 @@
-import { mediaEngine } from "./media";
-import { recording } from "./recording";
-import { webrtc } from "./webrtc";
-import { signaling } from "./signaling";
 import { events } from "./events";
-import { participantManager, Participant } from "./participantManager";
 
-export interface StudioSessionOptions {
-
-    sessionId: string;
-
-    role: "host" | "guest";
-
-    cameraId?: string;
-
-    microphoneId?: string;
-
-    autoRecord?: boolean;
-
+export interface Participant {
+    id: string;
+    name?: string;
+    role?: "host" | "guest";
+    audioEnabled?: boolean;
+    videoEnabled?: boolean;
+    handRaised?: boolean;
+    [key: string]: any;
 }
 
-class StudioSession {
+class ParticipantManager {
 
-    private running = false;
+    private participants = new Map<string, Participant>();
 
-    private sessionId = "";
+    setAll(participants: Participant[]) {
 
-    private role: "host" | "guest" = "guest";
+        this.participants.clear();
 
-    private negotiating = new Set<string>();
+        for (const participant of participants) {
 
-    private readonly participantJoinedHandler =
-        async (participant: Participant) => {
-
-            if (!this.running) {
-                return;
-            }
-
-            if (this.role !== "host") {
-                return;
-            }
-
-            const me =
-                signaling.getParticipantId();
-
-            if (
-                !participant ||
-                participant.id === me
-            ) {
-                return;
-            }
-
-            if (
-                this.negotiating.has(
-                    participant.id,
-                )
-            ) {
-                return;
-            }
-
-            this.negotiating.add(
+            this.participants.set(
                 participant.id,
+                participant,
             );
-
-            console.log(
-                "[SESSION] Negotiating with:",
-                participant.id,
-            );
-
-            try {
-
-                await webrtc.createOffer(
-                    participant.id,
-                );
-
-            }
-
-            catch (error) {
-
-                console.error(
-                    "[NEGOTIATION]",
-                    error,
-                );
-
-            }
-
-            finally {
-
-                this.negotiating.delete(
-                    participant.id,
-                );
-
-            }
-
-        };
-
-    async start(
-        options: StudioSessionOptions,
-    ) {
-
-        if (this.running) {
-            return;
-        }
-
-        this.sessionId =
-            options.sessionId;
-
-        this.role =
-            options.role;
-
-        console.log(
-            "[SESSION] Starting",
-        );
-
-        //
-        // Register listeners BEFORE connecting.
-        //
-        events.on(
-            "participant.joined",
-            this.participantJoinedHandler,
-        );
-
-        await signaling.connect(
-            this.sessionId,
-        );
-
-        await mediaEngine.requestPermissions();
-
-        await mediaEngine.startStudioMedia(
-            options.cameraId,
-            options.microphoneId,
-        );
-
-        await webrtc.initialize();
-
-        this.running = true;
-
-        //
-        // Host negotiates with everyone
-        // already in the room.
-        //
-        if (
-            this.role === "host"
-        ) {
-
-            const me =
-                signaling.getParticipantId();
-
-            const participants =
-                participantManager.getAll();
-
-            for (
-                const participant
-                of participants
-            ) {
-
-                if (
-                    participant.id === me
-                ) {
-                    continue;
-                }
-
-                await this.participantJoinedHandler(
-                    participant,
-                );
-
-            }
 
         }
 
         events.emit(
-            "session.started",
-            {},
+            "participants.updated",
+            this.getAll(),
         );
 
     }
 
-    async stop() {
+    add(participant: Participant) {
 
-        if (!this.running) {
+        this.participants.set(
+            participant.id,
+            participant,
+        );
+
+        events.emit(
+            "participant.joined",
+            participant,
+        );
+
+        events.emit(
+            "participants.updated",
+            this.getAll(),
+        );
+
+    }
+
+    remove(participantId: string) {
+
+        const participant =
+            this.participants.get(
+                participantId,
+            );
+
+        if (!participant) {
             return;
         }
 
-        events.off(
-            "participant.joined",
-            this.participantJoinedHandler,
+        this.participants.delete(
+            participantId,
         );
-
-        this.negotiating.clear();
-
-        if (
-            recording.isRecording()
-        ) {
-
-            await recording.stop();
-
-        }
-
-        webrtc.close();
-
-        signaling.disconnect();
-
-        mediaEngine.stop();
-
-        this.running = false;
 
         events.emit(
-            "session.stopped",
-            {},
+            "participant.left",
+            participant,
+        );
+
+        events.emit(
+            "participants.updated",
+            this.getAll(),
         );
 
     }
 
-    async raiseHand() {
+    get(participantId: string) {
 
-        await signaling.send(
-            "raise_hand",
+        return this.participants.get(
+            participantId,
         );
 
     }
 
-    async approveSpeaker(
-        participantId: string,
-    ) {
+    getAll() {
 
-        await signaling.send(
-            "approve_speaker",
-            {
-                participantId,
-            },
+        return Array.from(
+            this.participants.values(),
         );
 
     }
 
-    async removeSpeaker(
-        participantId: string,
-    ) {
+    clear() {
 
-        await signaling.send(
-            "remove_speaker",
-            {
-                participantId,
-            },
+        this.participants.clear();
+
+        events.emit(
+            "participants.updated",
+            [],
         );
-
-    }
-
-    getSessionId() {
-
-        return this.sessionId;
-
-    }
-
-    getRole() {
-
-        return this.role;
-
-    }
-
-    isRunning() {
-
-        return this.running;
 
     }
 
 }
 
-export const studioSession =
-    new StudioSession();
+export const participantManager =
+    new ParticipantManager();
