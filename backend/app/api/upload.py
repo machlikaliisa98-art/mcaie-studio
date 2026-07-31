@@ -12,16 +12,11 @@ from app.config import UPLOADS
 
 router = APIRouter(tags=["Upload"])
 
-pipeline = ProductionPipeline()
-
 
 @router.post("/upload")
 async def upload_audio(
-
     file: UploadFile = File(...),
-
     mode: str = Form("podcast"),
-
 ):
 
     #
@@ -37,21 +32,14 @@ async def upload_audio(
     destination = UPLOADS / f"{job_id}{Path(file.filename).suffix}"
 
     destination.parent.mkdir(
-
         parents=True,
-
         exist_ok=True,
-
     )
 
     with open(destination, "wb") as buffer:
-
         shutil.copyfileobj(
-
             file.file,
-
             buffer,
-
         )
 
     #
@@ -59,13 +47,9 @@ async def upload_audio(
     #
 
     project = projects.create(
-
         title=Path(file.filename).stem,
-
         mode=mode,
-
         source_audio=str(destination),
-
     )
 
     #
@@ -75,27 +59,20 @@ async def upload_audio(
     create_job(job_id)
 
     #
-    # Start Production Pipeline
+    # Create Pipeline ONLY when needed
     #
 
+    pipeline = ProductionPipeline()
+
     threading.Thread(
-
         target=pipeline.process,
-
         kwargs={
-
             "project_id": project.id,
-
             "job_id": job_id,
-
             "audio_file": str(destination),
-
             "mode": mode,
-
         },
-
         daemon=True,
-
     ).start()
 
     #
@@ -103,13 +80,8 @@ async def upload_audio(
     #
 
     return {
-
         "project_id": project.id,
-
         "job_id": job_id,
-
         "mode": mode,
-
         "status": "created",
-
     }

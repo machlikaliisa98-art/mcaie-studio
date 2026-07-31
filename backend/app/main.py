@@ -21,7 +21,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],  # Change to your frontend domain later
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -42,41 +42,21 @@ app.include_router(playback_router)
 app.include_router(search_router)
 app.include_router(studio_router)
 app.include_router(websocket_router)
-app.include_router(
-    sessions_router,
-)
+app.include_router(sessions_router)
+
 
 @app.get("/")
 def root():
-
     return {
-
+        "status": "ok",
         "application": "Man Cave UG AI Studio",
-
         "engine": "MCAIE",
-
         "version": "2.0.0",
+    }
 
-        "status": "running",
 
-        "services": {
-
-            "speech": True,
-
-            "language": True,
-
-            "knowledge": True,
-
-            "embedding": True,
-
-            "memory": True,
-
-            "semantic_search": True,
-
-            "live_sessions": True,
-
-            "websocket": True,
-
-        },
-
+@app.get("/health")
+def health():
+    return {
+        "status": "healthy"
     }
