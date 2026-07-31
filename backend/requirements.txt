@@ -13,6 +13,7 @@ ffmpeg-python
 torch
 torchaudio
 silero-vad
+faster-whisper
 
 pyloudnorm
 
