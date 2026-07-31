@@ -12,6 +12,7 @@ ffmpeg-python
 
 torch
 torchaudio
+silero-vad
 
 pyloudnorm
 
