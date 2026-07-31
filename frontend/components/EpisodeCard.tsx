@@ -69,7 +69,6 @@ export default function EpisodeCard({
       barGap: 2,
       height: 90,
       normalize: true,
-      responsive: true,
     });
 
     waveRef.current = wave;
