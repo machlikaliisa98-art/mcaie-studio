@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import CameraGrid from "./CameraGrid";
+import CameraGrid, { Camera } from "./CameraGrid";
 import ParticipantsPanel from "./ParticipantsPanel";
 
 import { studioSession } from "../../services/studioSession";
@@ -164,7 +164,24 @@ export default function LiveStudio({
 
     }
 
-    const cameras = [
+    const cameras: Camera[] = [
+    {
+        id: "local",
+        name: role === "host" ? "Host" : "Guest",
+        stream: localStream,
+        muted: true,
+        role,
+        onStage: true,
+    },
+    {
+        id: "remote",
+        name: role === "host" ? "Guest" : "Host",
+        stream: remoteStream,
+        muted: false,
+        role: role === "host" ? "guest" : "host",
+        onStage: true,
+    },
+];
 
         {
 
