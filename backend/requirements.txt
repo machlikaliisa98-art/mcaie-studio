@@ -103,7 +103,6 @@ pyannote-metrics==4.1
 pyannote-pipeline==4.0.0
 pyannoteai-sdk==0.4.0
 pyasn1==0.6.4
-PyAudioWPatch==0.2.12.8
 pycparser==3.0
 pydantic==2.11.7
 pydantic-settings==2.14.2
