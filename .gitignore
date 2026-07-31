@@ -1,0 +1,33 @@
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+.env
+.env.*
+
+# ---------- Node ----------
+node_modules/
+.next/
+.vercel/
+
+# ---------- Audio & Generated Data ----------
+backend/storage/uploads/
+backend/storage/processed/
+backend/storage/temp/
+backend/storage/projects/
+backend/storage/episodes/
+
+# ---------- Logs ----------
+logs/
+*.log
+
+# ---------- OS ----------
+Thumbs.db
+.DS_Store
+
+# ---------- IDE ----------
+.vscode/
+.idea/

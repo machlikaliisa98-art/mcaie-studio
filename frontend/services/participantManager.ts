@@ -1,0 +1,269 @@
+import { mediaEngine } from "./media";
+import { recording } from "./recording";
+import { webrtc } from "./webrtc";
+import { signaling } from "./signaling";
+import { events } from "./events";
+import { participantManager, Participant } from "./participantManager";
+
+export interface StudioSessionOptions {
+
+    sessionId: string;
+
+    role: "host" | "guest";
+
+    cameraId?: string;
+
+    microphoneId?: string;
+
+    autoRecord?: boolean;
+
+}
+
+class StudioSession {
+
+    private running = false;
+
+    private sessionId = "";
+
+    private role: "host" | "guest" = "guest";
+
+    private negotiating = new Set<string>();
+
+    private readonly participantJoinedHandler =
+        async (participant: Participant) => {
+
+            if (!this.running) {
+                return;
+            }
+
+            if (this.role !== "host") {
+                return;
+            }
+
+            const me =
+                signaling.getParticipantId();
+
+            if (
+                !participant ||
+                participant.id === me
+            ) {
+                return;
+            }
+
+            if (
+                this.negotiating.has(
+                    participant.id,
+                )
+            ) {
+                return;
+            }
+
+            this.negotiating.add(
+                participant.id,
+            );
+
+            console.log(
+                "[SESSION] Negotiating with:",
+                participant.id,
+            );
+
+            try {
+
+                await webrtc.createOffer(
+                    participant.id,
+                );
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "[NEGOTIATION]",
+                    error,
+                );
+
+            }
+
+            finally {
+
+                this.negotiating.delete(
+                    participant.id,
+                );
+
+            }
+
+        };
+
+    async start(
+        options: StudioSessionOptions,
+    ) {
+
+        if (this.running) {
+            return;
+        }
+
+        this.sessionId =
+            options.sessionId;
+
+        this.role =
+            options.role;
+
+        console.log(
+            "[SESSION] Starting",
+        );
+
+        //
+        // Register listeners BEFORE connecting.
+        //
+        events.on(
+            "participant.joined",
+            this.participantJoinedHandler,
+        );
+
+        await signaling.connect(
+            this.sessionId,
+        );
+
+        await mediaEngine.requestPermissions();
+
+        await mediaEngine.startStudioMedia(
+            options.cameraId,
+            options.microphoneId,
+        );
+
+        await webrtc.initialize();
+
+        this.running = true;
+
+        //
+        // Host negotiates with everyone
+        // already in the room.
+        //
+        if (
+            this.role === "host"
+        ) {
+
+            const me =
+                signaling.getParticipantId();
+
+            const participants =
+                participantManager.getAll();
+
+            for (
+                const participant
+                of participants
+            ) {
+
+                if (
+                    participant.id === me
+                ) {
+                    continue;
+                }
+
+                await this.participantJoinedHandler(
+                    participant,
+                );
+
+            }
+
+        }
+
+        events.emit(
+            "session.started",
+            {},
+        );
+
+    }
+
+    async stop() {
+
+        if (!this.running) {
+            return;
+        }
+
+        events.off(
+            "participant.joined",
+            this.participantJoinedHandler,
+        );
+
+        this.negotiating.clear();
+
+        if (
+            recording.isRecording()
+        ) {
+
+            await recording.stop();
+
+        }
+
+        webrtc.close();
+
+        signaling.disconnect();
+
+        mediaEngine.stop();
+
+        this.running = false;
+
+        events.emit(
+            "session.stopped",
+            {},
+        );
+
+    }
+
+    async raiseHand() {
+
+        await signaling.send(
+            "raise_hand",
+        );
+
+    }
+
+    async approveSpeaker(
+        participantId: string,
+    ) {
+
+        await signaling.send(
+            "approve_speaker",
+            {
+                participantId,
+            },
+        );
+
+    }
+
+    async removeSpeaker(
+        participantId: string,
+    ) {
+
+        await signaling.send(
+            "remove_speaker",
+            {
+                participantId,
+            },
+        );
+
+    }
+
+    getSessionId() {
+
+        return this.sessionId;
+
+    }
+
+    getRole() {
+
+        return this.role;
+
+    }
+
+    isRunning() {
+
+        return this.running;
+
+    }
+
+}
+
+export const studioSession =
+    new StudioSession();

@@ -1,0 +1,155 @@
+from dataclasses import dataclass
+import numpy as np
+
+from app.engine.mcaie.voiceprint import VoicePrint
+from app.engine.mcaie.room import RoomProfile
+from app.engine.mcaie.noise import NoiseProfile
+
+
+@dataclass
+class RestorationPlan:
+
+    brightness: float
+
+    warmth: float
+
+    presence: float
+
+    body: float
+
+    dynamics: float
+
+    denoise: float
+
+    dereverb: float
+
+    air: float
+
+
+class VoiceRestorationEngine:
+
+    """
+    MCAIE Voice Restoration Engine
+
+    The objective is NOT to add effects.
+
+    The objective is to reconstruct
+    the voice towards a studio-quality
+    recording.
+    """
+
+    TARGET = {
+
+        "brightness":0.58,
+
+        "warmth":0.60,
+
+        "presence":0.68,
+
+        "body":0.55,
+
+        "dynamics":2.20,
+
+        "air":0.55,
+
+    }
+
+    def restore(
+
+        self,
+
+        voice: VoicePrint,
+
+        room: RoomProfile,
+
+        noise: NoiseProfile,
+
+    ) -> RestorationPlan:
+
+        brightness = (
+
+            self.TARGET["brightness"]
+
+            - voice.brightness
+
+        )
+
+        warmth = (
+
+            self.TARGET["warmth"]
+
+            - voice.warmth
+
+        )
+
+        presence = (
+
+            self.TARGET["presence"]
+
+            - voice.clarity
+
+        )
+
+        body = (
+
+            0.55
+
+            - voice.warmth
+
+        )
+
+        dynamics = (
+
+            self.TARGET["dynamics"]
+
+            - voice.dynamics
+
+        )
+
+        air = (
+
+            self.TARGET["air"]
+
+            - voice.brightness
+
+        )
+
+        return RestorationPlan(
+
+            brightness=float(brightness),
+
+            warmth=float(warmth),
+
+            presence=float(presence),
+
+            body=float(body),
+
+            dynamics=float(dynamics),
+
+            denoise=float(
+
+                min(
+
+                    1,
+
+                    noise.hiss_score*2
+
+                )
+
+            ),
+
+            dereverb=float(
+
+                min(
+
+                    1,
+
+                    room.reverb_score*5
+
+                )
+
+            ),
+
+            air=float(air),
+
+        )
