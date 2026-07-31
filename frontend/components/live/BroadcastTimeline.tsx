@@ -14,7 +14,7 @@ type TimelineEvent={
 
 export default function BroadcastTimeline(){
 
-    const events:TimelineEvent=[
+    const events: TimelineEvent[] = [
 
         {
 
