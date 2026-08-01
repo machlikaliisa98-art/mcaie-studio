@@ -183,49 +183,6 @@ export default function LiveStudio({
     },
 ];
 
-        {
-
-            id: "local",
-
-            name:
-                role === "host"
-                    ? "Host"
-                    : "Guest",
-
-            stream: localStream,
-
-            muted: true,
-
-            role,
-
-            onStage: true,
-
-        },
-
-        {
-
-            id: "remote",
-
-            name:
-                role === "host"
-                    ? "Guest"
-                    : "Host",
-
-            stream: remoteStream,
-
-            muted: false,
-
-            role:
-                role === "host"
-                    ? "guest"
-                    : "host",
-
-            onStage: true,
-
-        },
-
-    ];
-
     return (
 
         <div

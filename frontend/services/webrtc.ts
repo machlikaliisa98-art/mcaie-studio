@@ -160,18 +160,20 @@ class WebRTCEngine {
 
         if (this.localStream) {
 
-            this.localStream
-                .getTracks()
-                .forEach(track => {
+    const localStream = this.localStream;
 
-                    peer.connection.addTrack(
-                        track,
-                        this.localStream!,
-                    );
+    localStream
+        .getTracks()
+        .forEach(track => {
 
-                });
+            peer.connection.addTrack(
+                track,
+                localStream,
+            );
 
-        }
+        });
+
+}
 
         const offer =
             await peer.connection.createOffer();
@@ -252,18 +254,20 @@ class WebRTCEngine {
 
         if (this.localStream) {
 
-            this.localStream
-                .getTracks()
-                .forEach(track => {
+    const localStream = this.localStream;
 
-                    peer.connection.addTrack(
-                        track,
-                        this.localStream,
-                    );
+    localStream
+        .getTracks()
+        .forEach(track => {
 
-                });
+            peer.connection.addTrack(
+                track,
+                localStream,
+            );
 
-        }
+        });
+
+}
 
         await peer.connection.setRemoteDescription(
             new RTCSessionDescription(

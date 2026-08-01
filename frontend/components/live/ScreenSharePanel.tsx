@@ -22,7 +22,7 @@ export default function ScreenSharePanel({
 
 }){
 
-    const requests:Request=[];
+    const requests: Request[] = [];
 
     return(
 

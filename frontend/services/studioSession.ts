@@ -26,34 +26,40 @@ class StudioSession {
 
     private role: "host" | "guest" = "guest";
 
-    private readonly participantJoinedHandler = async () => {
+    private readonly participantJoinedHandler = async (
+    participant: any,
+) => {
 
-        if (
-            !this.running ||
-            this.role !== "host"
-        ) {
-            return;
-        }
+    if (
+        !this.running ||
+        this.role !== "host" ||
+        !participant
+    ) {
+        return;
+    }
 
-        console.log(
-            "[SESSION] Participant joined. Creating offer.",
+    console.log(
+        "[SESSION] Participant joined:",
+        participant.id,
+    );
+
+    try {
+
+        await webrtc.createOffer(
+            participant.id,
         );
 
-        try {
+    }
 
-            await webrtc.createOffer();
+    catch (error) {
 
-        }
+        console.error(
+            error,
+        );
 
-        catch (error) {
+    }
 
-            console.error(
-                error,
-            );
-
-        }
-
-    };
+};
 
     async start(
         options: StudioSessionOptions,
@@ -100,24 +106,13 @@ class StudioSession {
         //
 
         if (
-            this.role === "host"
-        ) {
+    this.role === "host"
+) {
 
-            try {
+    // Existing participants will negotiate
+    // when participant.joined events arrive.
 
-                await webrtc.createOffer();
-
-            }
-
-            catch (error) {
-
-                console.error(
-                    error,
-                );
-
-            }
-
-        }
+}
 
         events.emit(
             "session.started",
