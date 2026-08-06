@@ -217,56 +217,35 @@ class LanguageEngine(AIEngine):
         ]
 
     def embedding_vector(
-
         self,
-
         text: str,
-
     ):
 
         return self.__class__._embedding_model.encode(
-
             text,
-
             normalize_embeddings=True,
-
         )
-            #
+
+    #
     # Embeddings
     #
 
     def embeddings(
-
         self,
-
         text: str,
-
     ) -> LanguageResponse:
 
-        vector = self.embedding_vector(
-
-            text,
-
-        )
+        vector = self.embedding_vector(text)
 
         return LanguageResponse(
-
             success=True,
-
             task="embeddings",
-
             result="Embedding generated.",
-
             confidence=1.0,
-
             metadata={
-
                 "dimension": int(len(vector)),
-
                 "embedding": vector.tolist(),
-
             },
-
         )
 
     #
@@ -274,65 +253,33 @@ class LanguageEngine(AIEngine):
     #
 
     def extract_keywords(
-
         self,
-
         text: str,
-
     ) -> LanguageResponse:
 
         keywords = self.__class__._keyword_model.extract_keywords(
-
             text,
-
             keyphrase_ngram_range=(1, 3),
-
             stop_words="english",
-
             top_n=15,
-
             use_mmr=True,
-
             diversity=0.6,
-
         )
 
-        values = [
-
-            keyword
-
-            for keyword, score
-
-            in keywords
-
-        ]
+        values = [keyword for keyword, _ in keywords]
 
         return LanguageResponse(
-
             success=True,
-
             task="keywords",
-
             result=", ".join(values),
-
             confidence=0.95,
-
             metadata={
-
                 "keywords": values,
-
                 "scores": {
-
                     keyword: float(score)
-
-                    for keyword, score
-
-                    in keywords
-
+                    for keyword, score in keywords
                 },
-
             },
-
         )
 
     #
@@ -340,37 +287,24 @@ class LanguageEngine(AIEngine):
     #
 
     def extract_topics(
-
         self,
-
         text: str,
-
     ) -> LanguageResponse:
 
         keywords = self.extract_keywords(
-
             text,
-
         ).metadata["keywords"]
 
         topics = keywords[:5]
 
         return LanguageResponse(
-
             success=True,
-
             task="topics",
-
             result=", ".join(topics),
-
             confidence=0.90,
-
             metadata={
-
                 "topics": topics,
-
             },
-
         )
 
     #
@@ -378,54 +312,33 @@ class LanguageEngine(AIEngine):
     #
 
     def summarize(
-
         self,
-
         text: str,
-
     ) -> LanguageResponse:
 
         clean = " ".join(
-
             self.sentences(text)
-
         )
 
-        #
-        # HuggingFace models
-        # have token limits.
-        #
+        words = clean.split()
 
-        if len(clean) > 3500:
-
-            clean = clean[:3500]
+        if len(words) > 700:
+            clean = " ".join(words[:700])
 
         summary = self.__class__._summarizer(
-
             clean,
-
             max_length=180,
-
             min_length=60,
-
+            truncation=True,
             do_sample=False,
-
         )[0]["summary_text"]
 
         return LanguageResponse(
-
             success=True,
-
             task="summary",
-
             result=summary,
-
             confidence=0.94,
-
             metadata={
-
                 "characters": len(clean),
-
             },
-
         )

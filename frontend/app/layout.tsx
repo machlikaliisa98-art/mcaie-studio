@@ -13,9 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Man Cave UG AI Studio",
-  description:
-    "Professional AI Powered Podcast Production Studio built on MCAIE.",
+  title: "FONS",
+  description: "Return for Wisdom.",
 };
 
 export default function RootLayout({
@@ -29,7 +28,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
-      <body className="min-h-screen bg-[#0B0F19] text-white antialiased">
+      <body className="min-h-screen bg-[#F8F5EF] text-[#123A4A] antialiased">
         {children}
       </body>
     </html>

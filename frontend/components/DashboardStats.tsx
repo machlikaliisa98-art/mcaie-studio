@@ -5,42 +5,32 @@ type Props = {
 };
 
 function Card({
-
   title,
-
   value,
-
   subtitle,
-
 }: {
-
   title: string;
-
   value: string | number;
-
   subtitle: string;
-
 }) {
-
   return (
-
     <div
       style={{
-        background: "rgba(17,28,45,.92)",
-        border: "1px solid rgba(255,255,255,.08)",
-        borderRadius: 18,
-        padding: 24,
+        background: "#FFFFFF",
+        borderRadius: 28,
+        padding: 28,
+        border: "1px solid #E8DED0",
+        boxShadow: "0 10px 30px rgba(0,0,0,.04)",
       }}
     >
-
       <div
         style={{
-          color: "#94A3B8",
+          color: "#8A8175",
           fontSize: 13,
-          fontWeight: 700,
-          marginBottom: 12,
-          textTransform: "uppercase",
+          fontWeight: 600,
+          marginBottom: 14,
           letterSpacing: 1,
+          textTransform: "uppercase",
         }}
       >
         {title}
@@ -48,10 +38,10 @@ function Card({
 
       <div
         style={{
-          color: "#FFFFFF",
-          fontSize: 38,
-          fontWeight: 800,
-          marginBottom: 10,
+          fontSize: 42,
+          fontWeight: 700,
+          color: "#153848",
+          marginBottom: 12,
         }}
       >
         {value}
@@ -59,148 +49,110 @@ function Card({
 
       <div
         style={{
-          color: "#CBD5E1",
-          fontSize: 14,
-          lineHeight: 1.6,
+          color: "#6E7275",
+          lineHeight: 1.7,
+          fontSize: 15,
         }}
       >
         {subtitle}
       </div>
-
     </div>
-
   );
-
 }
 
 export default function DashboardStats({
-
   uploading,
-
   progress,
-
   episodes,
-
 }: Props) {
-
   return (
-
     <>
-
       <div
         style={{
           display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fit,minmax(240px,1fr))",
+          gridTemplateColumns: "repeat(4,minmax(0,1fr))",
           gap: 22,
-          marginBottom: 30,
+          marginBottom: 36,
         }}
       >
-
         <Card
-          title="Studio Status"
-          value={uploading ? "Running" : "Ready"}
-          subtitle={
-            uploading
-              ? "MCAIE is processing your production."
-              : "Studio is waiting for the next recording."
-          }
+          title="Creators"
+          value="01"
+          subtitle="Andrew Kyamagero"
         />
 
         <Card
-          title="Pipeline Progress"
-          value={`${progress}%`}
-          subtitle="Real time production progress from the backend."
+          title="Channels"
+          value="02"
+          subtitle="Kyamagero Daily • Man Cave UG"
         />
 
         <Card
           title="Episodes"
           value={episodes}
-          subtitle="Podcast episodes successfully produced."
+          subtitle="Available inside FONS"
         />
 
         <Card
-          title="AI Engine"
-          value="MCAIE"
-          subtitle="Speech • Language • Knowledge • Search"
+          title="Live"
+          value={uploading ? "ON" : "READY"}
+          subtitle="Studio Production"
         />
-
       </div>
 
       {uploading && (
-
         <div
           style={{
-            background: "rgba(17,28,45,.92)",
-            border: "1px solid rgba(255,255,255,.08)",
-            borderRadius: 18,
-            padding: 24,
-            marginBottom: 30,
+            background: "#FFFFFF",
+            borderRadius: 28,
+            border: "1px solid #E8DED0",
+            padding: 30,
+            marginBottom: 40,
           }}
         >
-
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
-              marginBottom: 14,
-              color: "#FFFFFF",
+              marginBottom: 18,
+              color: "#153848",
               fontWeight: 700,
             }}
           >
-
-            <span>
-
-              MCAIE Production Pipeline
-
-            </span>
-
-            <span>
-
-              {progress}%
-
-            </span>
-
+            <span>FONS AI Production</span>
+            <span>{progress}%</span>
           </div>
 
           <div
             style={{
-              width: "100%",
-              height: 12,
-              background: "#223248",
+              height: 10,
+              background: "#ECE4D6",
               borderRadius: 999,
               overflow: "hidden",
             }}
           >
-
             <div
               style={{
                 width: `${progress}%`,
                 height: "100%",
-                background:
-                  "linear-gradient(90deg,#F59E0B,#FDBA2C)",
-                transition: "width .3s ease",
+                background: "#B48A45",
+                transition: ".3s",
               }}
             />
-
           </div>
 
           <div
             style={{
               marginTop: 18,
-              color: "#94A3B8",
-              lineHeight: 1.7,
+              color: "#6E7275",
+              lineHeight: 1.8,
             }}
           >
-            Audio Inspection • Normalization • Studio Mastering • Speech Recognition • Language Intelligence • Knowledge Generation • Semantic Search
+            Capturing • Cleaning • Speaker Identification • AI Chapters •
+            Episode Splitting • Knowledge Graph • Publishing
           </div>
-
         </div>
-
       )}
-
     </>
-
   );
-
 }

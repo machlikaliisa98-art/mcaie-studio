@@ -1,8 +1,18 @@
 export default function LibraryPage() {
   return (
-    <main className="p-6">
-      <h1 className="text-2xl font-bold">Library</h1>
-      <p>Coming soon.</p>
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "#F6F1E8",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        color: "#153848",
+        fontSize: 28,
+        fontWeight: 700,
+      }}
+    >
+      Library Coming Soon
     </main>
   );
 }

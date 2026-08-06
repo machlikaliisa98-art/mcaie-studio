@@ -16,17 +16,15 @@ type Props = {
 };
 
 export default function EpisodeGrid({
-
   episodes,
-
   episodeUrl,
-
 }: Props) {
-
   return (
-
-    <section>
-
+    <section
+      style={{
+        marginTop: 40,
+      }}
+    >
       <div
         style={{
           display: "flex",
@@ -35,114 +33,139 @@ export default function EpisodeGrid({
           marginBottom: 28,
         }}
       >
-
         <div>
+          <div
+            style={{
+              color: "#B48A45",
+              fontWeight: 700,
+              letterSpacing: 1,
+              marginBottom: 10,
+            }}
+          >
+            CONTINUE LISTENING
+          </div>
 
           <h2
             style={{
-              color: "#FFFFFF",
-              fontSize: 32,
-              fontWeight: 800,
+              color: "#153848",
+              fontSize: 38,
               margin: 0,
             }}
           >
-            Produced Episodes
+            Episodes For You
           </h2>
-
-          <p
-            style={{
-              color: "#94A3B8",
-              marginTop: 10,
-              lineHeight: 1.7,
-            }}
-          >
-            Every completed production automatically becomes part of your
-            searchable knowledge library.
-          </p>
-
         </div>
 
-        <div
+        <button
           style={{
-            background: "#F59E0B",
-            color: "#08101B",
-            padding: "12px 20px",
-            borderRadius: 14,
-            fontWeight: 800,
+            background: "#123A4A",
+            color: "#FFFFFF",
+            border: "none",
+            borderRadius: 999,
+            padding: "14px 26px",
+            fontWeight: 700,
           }}
         >
-          {episodes.length} Episode{episodes.length !== 1 ? "s" : ""}
-        </div>
-
+          View Library
+        </button>
       </div>
 
       {episodes.length === 0 ? (
-
-        <div
-          style={{
-            background: "rgba(17,28,45,.95)",
-            border: "1px solid rgba(255,255,255,.08)",
-            borderRadius: 18,
-            padding: 70,
-            textAlign: "center",
-          }}
-        >
-
-          <h2
-            style={{
-              color: "#FFFFFF",
-              marginBottom: 12,
-            }}
-          >
-            No Productions Yet
-          </h2>
-
-          <p
-            style={{
-              color: "#94A3B8",
-              maxWidth: 700,
-              margin: "0 auto",
-              lineHeight: 1.8,
-            }}
-          >
-            Upload a recording and MCAIE will inspect the audio, restore it,
-            master it, generate transcripts, summaries, keywords, topics and
-            professionally produced podcast episodes.
-          </p>
-
-        </div>
-
-      ) : (
-
         <div
           style={{
             display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fill,minmax(430px,1fr))",
+            gridTemplateColumns: "repeat(3,1fr)",
             gap: 24,
           }}
         >
+          {[1, 2, 3].map((card) => (
+            <div
+              key={card}
+              style={{
+                background: "#FFFFFF",
+                borderRadius: 30,
+                border: "1px solid #E7DED0",
+                overflow: "hidden",
+                boxShadow: "0 12px 28px rgba(0,0,0,.04)",
+              }}
+            >
+              <div
+                style={{
+                  height: 210,
+                  background: "#D7CEC0",
+                }}
+              />
 
-          {episodes.map((episode) => (
+              <div
+                style={{
+                  padding: 24,
+                }}
+              >
+                <div
+                  style={{
+                    color: "#B48A45",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    marginBottom: 10,
+                  }}
+                >
+                  ANDREW KYAMAGERO
+                </div>
 
-            <EpisodeCard
+                <h3
+                  style={{
+                    color: "#153848",
+                    marginBottom: 12,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  Featured Conversation
+                </h3>
 
-              key={`${episode.job_id}-${episode.filename}`}
+                <p
+                  style={{
+                    color: "#6F7477",
+                    lineHeight: 1.8,
+                    marginBottom: 20,
+                  }}
+                >
+                  This space will automatically be replaced by real episodes
+                  from the backend once production is complete.
+                </p>
 
-              episode={episode}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    color: "#8A8A8A",
+                    fontSize: 14,
+                  }}
+                >
+                  <span>45 min</span>
 
-              episodeUrl={episodeUrl}
-
-            />
-
+                  <span>▶ Listen</span>
+                </div>
+              </div>
+            </div>
           ))}
-
         </div>
-
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill,minmax(360px,1fr))",
+            gap: 24,
+          }}
+        >
+          {episodes.map((episode) => (
+            <EpisodeCard
+              key={`${episode.job_id}-${episode.filename}`}
+              episode={episode}
+              episodeUrl={episodeUrl}
+            />
+          ))}
+        </div>
       )}
-
     </section>
-
   );
-
 }

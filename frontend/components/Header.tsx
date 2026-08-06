@@ -1,117 +1,222 @@
+"use client";
+
+import Link from "next/link";
+
 export default function Header() {
-
   return (
-
     <header
       style={{
-        background: "rgba(17,28,45,.92)",
-        borderBottom: "1px solid rgba(255,255,255,.08)",
-        padding: "22px 34px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
+        background: "#F6F1E8",
+        padding: "28px 48px 22px",
+        borderBottom: "1px solid #E7DED2",
         position: "sticky",
         top: 0,
-        zIndex: 100,
-        backdropFilter: "blur(18px)",
+        zIndex: 50,
       }}
     >
-
-      <div>
-
-        <div
-          style={{
-            color: "#94A3B8",
-            fontSize: 13,
-            fontWeight: 600,
-            marginBottom: 6,
-            textTransform: "uppercase",
-            letterSpacing: 1,
-          }}
-        >
-          Powered by MCAIE
-        </div>
-
-        <h1
-          style={{
-            fontSize: 30,
-            fontWeight: 800,
-            color: "#FFFFFF",
-            margin: 0,
-          }}
-        >
-          Man Cave UG AI Studio
-        </h1>
-
-      </div>
-
       <div
         style={{
           display: "flex",
+          justifyContent: "space-between",
           alignItems: "center",
-          gap: 20,
+          gap: 30,
         }}
       >
+        {/* LEFT */}
 
-        <input
-          placeholder="Search episodes, transcripts, summaries..."
+        <div
           style={{
-            width: 420,
-            padding: "15px 22px",
-            borderRadius: 14,
-            border: "1px solid rgba(255,255,255,.08)",
-            background: "#0E1726",
-            color: "#FFFFFF",
-            fontSize: 15,
+            flex: 1,
+            maxWidth: 720,
           }}
-        />
+        >
+          <div
+            style={{
+              color: "#B48A45",
+              fontWeight: 700,
+              letterSpacing: 2,
+              fontSize: 12,
+              marginBottom: 8,
+            }}
+          >
+            WELCOME BACK
+          </div>
+
+          <h1
+            style={{
+              margin: 0,
+              color: "#153848",
+              fontSize: 34,
+              fontWeight: 700,
+            }}
+          >
+            Good Evening, Andrew.
+          </h1>
+
+          <div
+            style={{
+              marginTop: 22,
+              background: "#FFFFFF",
+              borderRadius: 999,
+              border: "1px solid #E6DDD0",
+              display: "flex",
+              alignItems: "center",
+              padding: "8px 8px 8px 22px",
+              boxShadow: "0 10px 30px rgba(0,0,0,.04)",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 20,
+                marginRight: 16,
+              }}
+            >
+              🔍
+            </span>
+
+            <input
+              placeholder="Search conversations, creators, episodes..."
+              style={{
+                flex: 1,
+                border: "none",
+                outline: "none",
+                background: "transparent",
+                color: "#153848",
+                fontSize: 16,
+              }}
+            />
+
+            <div
+              style={{
+                background: "#F4EFE7",
+                padding: "10px 16px",
+                borderRadius: 999,
+                color: "#777",
+                fontWeight: 700,
+                fontSize: 13,
+              }}
+            >
+              Ctrl + K
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT */}
 
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 12,
+            gap: 16,
           }}
         >
+          <button
+            style={{
+              width: 54,
+              height: 54,
+              borderRadius: "50%",
+              border: "1px solid #E7DED2",
+              background: "#FFFFFF",
+              cursor: "pointer",
+              fontSize: 20,
+            }}
+          >
+            🔔
+          </button>
+
+          <button
+            style={{
+              width: 54,
+              height: 54,
+              borderRadius: "50%",
+              border: "1px solid #E7DED2",
+              background: "#FFFFFF",
+              cursor: "pointer",
+              fontSize: 20,
+            }}
+          >
+            ✉️
+          </button>
+
+          <Link
+            href="/studio"
+            style={{
+              textDecoration: "none",
+            }}
+          >
+            <button
+              style={{
+                background: "#153848",
+                color: "#FFFFFF",
+                border: "none",
+                padding: "16px 28px",
+                borderRadius: 999,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              + New Production
+            </button>
+          </Link>
 
           <div
             style={{
-              width: 12,
-              height: 12,
-              borderRadius: "50%",
-              background: "#10B981",
-              boxShadow: "0 0 12px #10B981",
-            }}
-          />
-
-          <span
-            style={{
-              color: "#FFFFFF",
-              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              background: "#FFFFFF",
+              border: "1px solid #E7DED2",
+              borderRadius: 999,
+              padding: "8px 10px 8px 8px",
+              cursor: "pointer",
+              boxShadow: "0 8px 24px rgba(0,0,0,.04)",
             }}
           >
-            MCAIE Online
-          </span>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: "50%",
+                background: "#D9D9D9",
+                overflow: "hidden",
+              }}
+            >
+              {/* Uploaded profile photo */}
+            </div>
 
+            <div>
+              <div
+                style={{
+                  color: "#153848",
+                  fontWeight: 700,
+                  fontSize: 15,
+                }}
+              >
+                Andrew Kyamagero
+              </div>
+
+              <div
+                style={{
+                  color: "#8B8B8B",
+                  fontSize: 12,
+                }}
+              >
+                Creator
+              </div>
+            </div>
+
+            <div
+              style={{
+                fontSize: 18,
+                color: "#777",
+                padding: "0 6px",
+              }}
+            >
+              ▼
+            </div>
+          </div>
         </div>
-
-        <button
-          style={{
-            background: "#F59E0B",
-            color: "#08101B",
-            fontWeight: 800,
-            padding: "15px 28px",
-            borderRadius: 14,
-            border: "none",
-          }}
-        >
-          + New Production
-        </button>
-
       </div>
-
     </header>
-
   );
-
 }

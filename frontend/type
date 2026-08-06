@@ -1,155 +1,328 @@
-from dataclasses import dataclass
-import numpy as np
-
-from app.engine.mcaie.voiceprint import VoicePrint
-from app.engine.mcaie.room import RoomProfile
-from app.engine.mcaie.noise import NoiseProfile
-
-
-@dataclass
-class RestorationPlan:
-
-    brightness: float
-
-    warmth: float
-
-    presence: float
-
-    body: float
-
-    dynamics: float
-
-    denoise: float
-
-    dereverb: float
-
-    air: float
-
-
-class VoiceRestorationEngine:
-
-    """
-    MCAIE Voice Restoration Engine
-
-    The objective is NOT to add effects.
-
-    The objective is to reconstruct
-    the voice towards a studio-quality
-    recording.
-    """
-
-    TARGET = {
-
-        "brightness":0.58,
-
-        "warmth":0.60,
-
-        "presence":0.68,
-
-        "body":0.55,
-
-        "dynamics":2.20,
-
-        "air":0.55,
-
-    }
-
-    def restore(
-
-        self,
-
-        voice: VoicePrint,
-
-        room: RoomProfile,
-
-        noise: NoiseProfile,
-
-    ) -> RestorationPlan:
-
-        brightness = (
-
-            self.TARGET["brightness"]
-
-            - voice.brightness
-
-        )
-
-        warmth = (
-
-            self.TARGET["warmth"]
-
-            - voice.warmth
-
-        )
-
-        presence = (
-
-            self.TARGET["presence"]
-
-            - voice.clarity
-
-        )
-
-        body = (
-
-            0.55
-
-            - voice.warmth
-
-        )
-
-        dynamics = (
-
-            self.TARGET["dynamics"]
-
-            - voice.dynamics
-
-        )
-
-        air = (
-
-            self.TARGET["air"]
-
-            - voice.brightness
-
-        )
-
-        return RestorationPlan(
-
-            brightness=float(brightness),
-
-            warmth=float(warmth),
-
-            presence=float(presence),
-
-            body=float(body),
-
-            dynamics=float(dynamics),
-
-            denoise=float(
-
-                min(
-
-                    1,
-
-                    noise.hiss_score*2
-
-                )
-
-            ),
-
-            dereverb=float(
-
-                min(
-
-                    1,
-
-                    room.reverb_score*5
-
-                )
-
-            ),
-
-            air=float(air),
-
-        )
+"use client";
+
+import Image from "next/image";
+
+export default function KyamageroDailyPage() {
+  return (
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "#F7F4EF",
+        color: "#121417",
+      }}
+    >
+      {/* HERO */}
+
+      <section
+        style={{
+          background: "#121417",
+          color: "#FFFFFF",
+          padding: "70px 70px 90px",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1450,
+            margin: "0 auto",
+            display: "grid",
+            gridTemplateColumns: "220px 1fr",
+            gap: 45,
+            alignItems: "center",
+          }}
+        >
+          <div
+            style={{
+              width: 220,
+              height: 220,
+              borderRadius: 30,
+              background: "#FFFFFF",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Image
+              src="/kd-logo.png"
+              alt="Kyamagero Daily"
+              width={170}
+              height={170}
+            />
+          </div>
+
+          <div>
+            <div
+              style={{
+                color: "#C48B52",
+                letterSpacing: 3,
+                fontWeight: 700,
+                marginBottom: 18,
+              }}
+            >
+              OFFICIAL SHOW
+            </div>
+
+            <h1
+              style={{
+                margin: 0,
+                fontSize: 68,
+                fontWeight: 700,
+              }}
+            >
+              Kyamagero Daily
+            </h1>
+
+            <p
+              style={{
+                marginTop: 25,
+                maxWidth: 820,
+                lineHeight: 1.8,
+                color: "#D6D6D6",
+                fontSize: 19,
+              }}
+            >
+              Daily conversations, reflections and timeless ideas on
+              leadership, business, governance, faith, society and
+              personal growth.
+            </p>
+
+            <div
+              style={{
+                display: "flex",
+                gap: 20,
+                marginTop: 35,
+              }}
+            >
+              <button
+                style={{
+                  background: "#B66A2A",
+                  color: "#FFFFFF",
+                  border: "none",
+                  padding: "18px 34px",
+                  borderRadius: 999,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Continue Listening
+              </button>
+
+              <button
+                style={{
+                  background: "transparent",
+                  color: "#FFFFFF",
+                  border: "1px solid rgba(255,255,255,.3)",
+                  padding: "18px 34px",
+                  borderRadius: 999,
+                  cursor: "pointer",
+                }}
+              >
+                Follow Show
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURED SERIES */}
+
+      <section
+        style={{
+          maxWidth: 1450,
+          margin: "70px auto",
+          padding: "0 40px",
+        }}
+      >
+        <div
+          style={{
+            marginBottom: 30,
+          }}
+        >
+          <div
+            style={{
+              color: "#B66A2A",
+              fontWeight: 700,
+              letterSpacing: 2,
+            }}
+          >
+            FEATURED SERIES
+          </div>
+
+          <h2
+            style={{
+              marginTop: 10,
+              fontSize: 42,
+              color: "#121417",
+            }}
+          >
+            Continue a Series
+          </h2>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3,1fr)",
+            gap: 28,
+          }}
+        >
+          {[
+            "You Rise Surrounded",
+            "The Power of Vision",
+            "Leadership Fundamentals",
+          ].map((series) => (
+            <div
+              key={series}
+              style={{
+                background: "#FFFFFF",
+                borderRadius: 28,
+                padding: 30,
+                boxShadow: "0 15px 35px rgba(0,0,0,.06)",
+              }}
+            >
+              <div
+                style={{
+                  color: "#B66A2A",
+                  fontWeight: 700,
+                  marginBottom: 12,
+                }}
+              >
+                SERIES
+              </div>
+
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: 28,
+                }}
+              >
+                {series}
+              </h3>
+
+              <p
+                style={{
+                  marginTop: 18,
+                  color: "#666",
+                  lineHeight: 1.8,
+                }}
+              >
+                Multiple conversations automatically organised into
+                one continuous learning series.
+              </p>
+
+              <div
+                style={{
+                  marginTop: 25,
+                  fontWeight: 700,
+                  color: "#153848",
+                }}
+              >
+                18 Episodes →
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* LATEST CONVERSATIONS */}
+
+      <section
+        style={{
+          maxWidth: 1450,
+          margin: "0 auto 90px",
+          padding: "0 40px",
+        }}
+      >
+        <div
+          style={{
+            marginBottom: 30,
+          }}
+        >
+          <div
+            style={{
+              color: "#B66A2A",
+              letterSpacing: 2,
+              fontWeight: 700,
+            }}
+          >
+            LATEST
+          </div>
+
+          <h2
+            style={{
+              marginTop: 10,
+              fontSize: 42,
+            }}
+          >
+            Recent Conversations
+          </h2>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 18,
+          }}
+        >
+          {[1, 2, 3, 4, 5].map((episode) => (
+            <div
+              key={episode}
+              style={{
+                background: "#FFFFFF",
+                padding: 28,
+                borderRadius: 24,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                boxShadow: "0 12px 30px rgba(0,0,0,.05)",
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    color: "#B66A2A",
+                    fontWeight: 700,
+                    marginBottom: 8,
+                  }}
+                >
+                  EPISODE {episode}
+                </div>
+
+                <h3
+                  style={{
+                    margin: 0,
+                    color: "#121417",
+                  }}
+                >
+                  Conversation Title
+                </h3>
+
+                <div
+                  style={{
+                    marginTop: 10,
+                    color: "#777",
+                  }}
+                >
+                  15 Minutes • Transcript • Summary • Quotes
+                </div>
+              </div>
+
+              <button
+                style={{
+                  background: "#121417",
+                  color: "#FFFFFF",
+                  border: "none",
+                  padding: "15px 28px",
+                  borderRadius: 999,
+                  cursor: "pointer",
+                }}
+              >
+                Listen
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}

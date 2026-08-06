@@ -7,6 +7,9 @@ from app.engine.mcaie.voiceprint import VoicePrintAnalyzer
 from app.engine.mcaie.noise import NoiseAnalyzer
 from app.engine.mcaie.room import RoomAnalyzer
 
+# AI
+from app.engine.ai.speech import SpeechEngine
+
 
 @dataclass
 class MasteringDecision:
@@ -40,6 +43,11 @@ class MCAIEMaster:
         self.voice = VoicePrintAnalyzer()
         self.noise = NoiseAnalyzer()
         self.room = RoomAnalyzer()
+
+        #
+        # Speech AI
+        #
+        self.speech = SpeechEngine()
 
     def analyze(self, audio_file):
 
@@ -132,21 +140,16 @@ class MCAIEMaster:
         return MasteringDecision(
 
             highpass,
-
             lowpass,
 
             eq_low,
-
             eq_mid,
-
             eq_high,
 
             compressor_ratio,
-
             compressor_threshold,
 
             denoise,
-
             dereverb,
 
             presence,

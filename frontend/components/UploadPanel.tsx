@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 type Props = {
   uploading: boolean;
   progress: number;
@@ -10,256 +8,246 @@ type Props = {
 };
 
 export default function UploadPanel({
-
   uploading,
-
   progress,
-
   onUpload,
-
   onFileChange,
-
 }: Props) {
-
-  const [mode, setMode] = useState<"studio" | "podcast">("podcast");
-
   return (
-
     <section
       style={{
-        background: "rgba(17,28,45,.95)",
-        border: "1px solid rgba(255,255,255,.08)",
-        borderRadius: 20,
-        padding: 30,
-        marginBottom: 35,
+        display: "grid",
+        gridTemplateColumns: "2fr 1fr",
+        gap: 28,
+        marginBottom: 50,
       }}
     >
-
-      <h2
-        style={{
-          marginTop: 0,
-          color: "#FFFFFF",
-          fontSize: 28,
-          marginBottom: 8,
-        }}
-      >
-        AI Production Studio
-      </h2>
-
-      <p
-        style={{
-          color: "#94A3B8",
-          marginBottom: 28,
-          lineHeight: 1.7,
-        }}
-      >
-        Upload a recording and let MCAIE inspect, restore, master,
-        transcribe, analyse and transform it into professional podcast
-        episodes.
-      </p>
-
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 20,
-          marginBottom: 30,
+          background: "#FFFFFF",
+          borderRadius: 32,
+          padding: 34,
+          border: "1px solid #E8DED0",
+          boxShadow: "0 12px 30px rgba(0,0,0,.04)",
         }}
       >
-
         <div
-          onClick={() => setMode("studio")}
           style={{
-            cursor: "pointer",
-            padding: 24,
-            borderRadius: 18,
-            background:
-              mode === "studio"
-                ? "#F59E0B"
-                : "#0D1726",
-            color:
-              mode === "studio"
-                ? "#08101B"
-                : "#FFFFFF",
-            transition: ".25s",
+            color: "#B48A45",
+            fontWeight: 700,
+            marginBottom: 10,
+            letterSpacing: 1,
           }}
         >
-
-          <h3
-            style={{
-              marginTop: 0,
-              marginBottom: 12,
-            }}
-          >
-            🎙 Studio Production
-          </h3>
-
-          <p
-            style={{
-              lineHeight: 1.7,
-            }}
-          >
-            Restore, clean and professionally master one complete recording while preserving its structure.
-          </p>
-
+          FEATURED CREATOR
         </div>
 
-        <div
-          onClick={() => setMode("podcast")}
+        <h2
           style={{
-            cursor: "pointer",
-            padding: 24,
-            borderRadius: 18,
-            background:
-              mode === "podcast"
-                ? "#F59E0B"
-                : "#0D1726",
-            color:
-              mode === "podcast"
-                ? "#08101B"
-                : "#FFFFFF",
-            transition: ".25s",
-          }}
-        >
-
-          <h3
-            style={{
-              marginTop: 0,
-              marginBottom: 12,
-            }}
-          >
-            🎧 Podcast Production
-          </h3>
-
-          <p
-            style={{
-              lineHeight: 1.7,
-            }}
-          >
-            Detect introductions, split long recordings into episodes,
-            master every episode and generate AI knowledge automatically.
-          </p>
-
-        </div>
-
-      </div>
-
-      <div
-        style={{
-          border: "2px dashed rgba(255,255,255,.15)",
-          borderRadius: 18,
-          padding: 40,
-          textAlign: "center",
-          marginBottom: 28,
-        }}
-      >
-
-        <h3
-          style={{
-            color: "#FFFFFF",
+            color: "#153848",
+            fontSize: 36,
             marginBottom: 12,
           }}
         >
-          Drag & Drop Audio
-        </h3>
+          Andrew Kyamagero
+        </h2>
 
         <p
           style={{
-            color: "#94A3B8",
-            marginBottom: 20,
+            color: "#6F7477",
+            lineHeight: 1.8,
+            marginBottom: 28,
           }}
         >
-          Supports MP3, WAV, M4A and other professional audio formats.
+          Public Figure, Speaker, Storyteller and Creator behind Kyamagero
+          Daily and Man Cave UG.
         </p>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 16,
+            marginBottom: 30,
+          }}
+        >
+          <button
+            style={{
+              background: "#123A4A",
+              color: "#FFFFFF",
+              border: "none",
+              padding: "16px 28px",
+              borderRadius: 999,
+              fontWeight: 700,
+            }}
+          >
+            Kyamagero Daily
+          </button>
+
+          <button
+            style={{
+              background: "#ECE3D6",
+              color: "#123A4A",
+              border: "none",
+              padding: "16px 28px",
+              borderRadius: 999,
+              fontWeight: 700,
+            }}
+          >
+            Man Cave UG
+          </button>
+        </div>
 
         <input
           type="file"
           accept="audio/*"
-          onChange={(e) =>
-            onFileChange(
-              e.target.files?.[0] ?? null
-            )
-          }
+          onChange={(e) => onFileChange(e.target.files?.[0] ?? null)}
         />
-
-      </div>
-
-      <button
-        disabled={uploading}
-        onClick={() => onUpload(mode)}
-        style={{
-          background: "#F59E0B",
-          color: "#08101B",
-          fontWeight: 800,
-          fontSize: 16,
-          padding: "16px 34px",
-          borderRadius: 14,
-          border: "none",
-        }}
-      >
-        {uploading
-          ? "MCAIE Processing..."
-          : "Start AI Production"}
-      </button>
-
-      {uploading && (
 
         <div
           style={{
-            marginTop: 30,
+            marginTop: 24,
+            display: "flex",
+            gap: 16,
           }}
         >
-
-          <div
+          <button
+            onClick={() => onUpload("podcast")}
+            disabled={uploading}
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: 12,
+              background: "#B48A45",
               color: "#FFFFFF",
+              border: "none",
+              padding: "16px 28px",
+              borderRadius: 999,
+              fontWeight: 700,
             }}
           >
+            {uploading ? "Producing..." : "Produce Episodes"}
+          </button>
 
-            <span>
+          <button
+            onClick={() => onUpload("studio")}
+            disabled={uploading}
+            style={{
+              background: "#123A4A",
+              color: "#FFFFFF",
+              border: "none",
+              padding: "16px 28px",
+              borderRadius: 999,
+              fontWeight: 700,
+            }}
+          >
+            Studio Master
+          </button>
+        </div>
 
-              Production Progress
-
-            </span>
-
-            <span>
-
-              {progress}%
-
-            </span>
-
-          </div>
-
+        {uploading && (
           <div
             style={{
-              height: 12,
-              borderRadius: 999,
-              overflow: "hidden",
-              background: "#1A2940",
+              marginTop: 28,
             }}
           >
+            <div
+              style={{
+                height: 8,
+                background: "#ECE3D6",
+                borderRadius: 999,
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: `${progress}%`,
+                  height: "100%",
+                  background: "#B48A45",
+                }}
+              />
+            </div>
 
             <div
               style={{
-                width: `${progress}%`,
-                height: "100%",
-                background:
-                  "linear-gradient(90deg,#F59E0B,#FDBA2C)",
-                transition: "width .3s",
+                marginTop: 12,
+                color: "#6F7477",
               }}
-            />
-
+            >
+              {progress}% • Capturing • Cleaning • Speaker ID • Chapters •
+              Episodes • Publishing
+            </div>
           </div>
+        )}
+      </div>
 
+      <div
+        style={{
+          background: "#123A4A",
+          borderRadius: 32,
+          padding: 30,
+          color: "#FFFFFF",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 24,
+            fontWeight: 700,
+            marginBottom: 22,
+          }}
+        >
+          Creator Brands
         </div>
 
-      )}
+        <div
+          style={{
+            background: "rgba(255,255,255,.08)",
+            borderRadius: 20,
+            padding: 20,
+            marginBottom: 18,
+          }}
+        >
+          <div
+            style={{
+              fontWeight: 700,
+              marginBottom: 8,
+            }}
+          >
+            Kyamagero Daily
+          </div>
 
+          <div
+            style={{
+              opacity: .8,
+              lineHeight: 1.6,
+            }}
+          >
+            Inspirational talks, leadership and personal growth.
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: "rgba(255,255,255,.08)",
+            borderRadius: 20,
+            padding: 20,
+          }}
+        >
+          <div
+            style={{
+              fontWeight: 700,
+              marginBottom: 8,
+            }}
+          >
+            Man Cave UG
+          </div>
+
+          <div
+            style={{
+              opacity: .8,
+              lineHeight: 1.6,
+            }}
+          >
+            X Spaces, podcasts, debates and long-form conversations.
+          </div>
+        </div>
+      </div>
     </section>
-
   );
-
 }

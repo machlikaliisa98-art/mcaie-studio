@@ -34,6 +34,7 @@ from app.config import (
     PROCESSED,
 )
 
+from app.services.publishing import publisher
 
 class ProductionPipeline:
 
@@ -522,46 +523,46 @@ class ProductionPipeline:
 
                     )
 
-                    #
+                                        #
                     # Speech Intelligence
                     #
 
-                    speech = self.master.mcaie.speech.transcribe(
-
+                    speech = self.speech.transcribe(
                         SpeechRequest(
-
                             audio_file=str(output),
-
                         )
-
                     )
 
                     #
                     # Language Intelligence
                     #
 
-                    summary = self.master.mcaie.language.summarize(
-
-                        speech.transcript,
-
+                    summary = self.language.process(
+                        LanguageRequest(
+                            task="summary",
+                            text=speech.transcript,
+                        )
                     )
 
-                    keywords = self.master.mcaie.language.extract_keywords(
-
-                        speech.transcript,
-
+                    keywords = self.language.process(
+                        LanguageRequest(
+                            task="keywords",
+                            text=speech.transcript,
+                        )
                     )
 
-                    topics = self.master.mcaie.language.extract_topics(
-
-                        speech.transcript,
-
+                    topics = self.language.process(
+                        LanguageRequest(
+                            task="topics",
+                            text=speech.transcript,
+                        )
                     )
 
-                    embedding = self.master.mcaie.language.embed(
-
-                        speech.transcript,
-
+                    embedding = self.language.process(
+                        LanguageRequest(
+                            task="embeddings",
+                            text=speech.transcript,
+                        )
                     )
 
                     #
@@ -578,11 +579,11 @@ class ProductionPipeline:
 
                         summary=summary.result,
 
-                        keywords=keywords.metadata,
+                        keywords=keywords.metadata["keywords"],
 
-                        topics=topics.metadata,
+                        topics=topics.metadata["topics"],
 
-                        embedding=embedding,
+                        embedding=embedding.metadata["embedding"],
 
                         metadata={
 
@@ -594,6 +595,20 @@ class ProductionPipeline:
 
                         },
 
+                    )
+
+                    #
+                    # Publish to FONS Library
+                    #
+
+                    publisher.publish(
+                        project_id=project_id,
+                        episode=episode.stem,
+                        title=episode.stem.replace("_", " "),
+                        audio=str(output),
+                        transcript=speech.transcript,
+                        summary=summary.result,
+                        duration=speech.duration,
                     )
 
                     print(

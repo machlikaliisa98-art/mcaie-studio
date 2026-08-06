@@ -78,8 +78,6 @@ class Presence:
 
             check=True,
 
-            timeout=180,
-
         )
 
         return output_file

@@ -1,52 +1,73 @@
-from fastapi import APIRouter, HTTPException
+from pathlib import Path
 
-from app.services.library import library
+from fastapi import APIRouter
+
+from app.config import (
+    EPISODES,
+    TRANSCRIPTS,
+    SUMMARIES,
+    KEYWORDS,
+)
 
 router = APIRouter(
-
     prefix="/library",
-
     tags=["Library"],
-
 )
 
 
 @router.get("/")
+def library():
 
-def get_library():
+    episodes = []
 
-    return library.all()
+    #
+    # Every processed audio becomes a card
+    #
 
+    for audio in sorted(
+        EPISODES.glob("*"),
+        reverse=True,
+    ):
 
-@router.get("/latest")
+        if audio.is_dir():
+            continue
 
-def latest(
+        stem = audio.stem
 
-    limit: int = 10,
+        transcript = TRANSCRIPTS / f"{stem}.txt"
+        summary = SUMMARIES / f"{stem}.txt"
+        keywords = KEYWORDS / f"{stem}.json"
 
-):
+        episodes.append(
+            {
+                "id": stem,
 
-    return library.latest(limit)
+                "title": stem.replace("_", " "),
 
+                "audio": str(audio),
 
-@router.get("/{episode}")
+                "transcript_exists": transcript.exists(),
 
-def get_episode(
+                "summary_exists": summary.exists(),
 
-    episode: str,
+                "keywords_exists": keywords.exists(),
 
-):
+                "transcript": str(transcript)
+                if transcript.exists()
+                else None,
 
-    result = library.get(episode)
+                "summary": str(summary)
+                if summary.exists()
+                else None,
 
-    if result is None:
-
-        raise HTTPException(
-
-            status_code=404,
-
-            detail="Episode not found.",
-
+                "keywords": str(keywords)
+                if keywords.exists()
+                else None,
+            }
         )
 
-    return result
+    return {
+        "success": True,
+        "count": len(episodes),
+        "episodes": episodes,
+    }

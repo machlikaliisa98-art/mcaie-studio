@@ -16,7 +16,29 @@ router = APIRouter(tags=["Upload"])
 @router.post("/upload")
 async def upload_audio(
     file: UploadFile = File(...),
+
+    # Project Mode
     mode: str = Form("podcast"),
+
+    # Audio Processing (kept for future UI)
+    enhance_audio: bool = Form(True),
+    normalize_audio: bool = Form(True),
+
+    # AI Processing (kept for future UI)
+    transcribe: bool = Form(True),
+    summarize: bool = Form(True),
+    keywords: bool = Form(True),
+    topics: bool = Form(True),
+    chapters: bool = Form(True),
+    speaker_identification: bool = Form(True),
+
+    # Episode Splitting
+    split_audio: bool = Form(False),
+    split_method: str = Form("ai"),
+    split_minutes: int = Form(20),
+
+    # Publishing
+    publish_to: str = Form("download"),
 ):
 
     #
@@ -59,10 +81,14 @@ async def upload_audio(
     create_job(job_id)
 
     #
-    # Create Pipeline ONLY when needed
+    # Create Production Pipeline
     #
 
     pipeline = ProductionPipeline()
+
+    #
+    # Start Processing
+    #
 
     threading.Thread(
         target=pipeline.process,
@@ -80,8 +106,30 @@ async def upload_audio(
     #
 
     return {
+        "status": "created",
         "project_id": project.id,
         "job_id": job_id,
-        "mode": mode,
-        "status": "created",
+        "configuration": {
+            "mode": mode,
+            "audio": {
+                "enhance_audio": enhance_audio,
+                "normalize_audio": normalize_audio,
+            },
+            "ai": {
+                "transcribe": transcribe,
+                "summarize": summarize,
+                "keywords": keywords,
+                "topics": topics,
+                "chapters": chapters,
+                "speaker_identification": speaker_identification,
+            },
+            "splitting": {
+                "enabled": split_audio,
+                "method": split_method,
+                "minutes": split_minutes,
+            },
+            "publishing": {
+                "destination": publish_to,
+            },
+        },
     }

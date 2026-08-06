@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 import json
+import shutil
 
 from app.config import OUTPUTS
 
@@ -31,24 +32,31 @@ class PublishingService:
     """
     MCAIE Publishing Service
 
-    Responsibilities
+    One publishing engine.
 
-    • Publish projects
-    • Build streaming library
-    • Generate metadata
-    • Create searchable catalog
+    Multiple destinations.
+
+    Library
+    Kyamagero Daily
+    Future Shows
     """
 
     def __init__(self):
 
-        self.library = OUTPUTS / "library"
+        self.outputs = OUTPUTS
+
+        self.library = self.outputs / "library"
+
+        self.shows = self.outputs / "shows"
 
         self.library.mkdir(
-
             parents=True,
-
             exist_ok=True,
+        )
 
+        self.shows.mkdir(
+            parents=True,
+            exist_ok=True,
         )
 
     def publish(
@@ -68,6 +76,8 @@ class PublishingService:
         summary: str = "",
 
         duration: float = 0.0,
+
+        show: str = "kyamagero-daily",
 
     ) -> PublishedEpisode:
 
@@ -91,9 +101,15 @@ class PublishingService:
 
         )
 
+        #
+        # Publish to Library
+        #
+
+        library_file = self.library / f"{episode}.json"
+
         with open(
 
-            self.library / f"{episode}.json",
+            library_file,
 
             "w",
 
@@ -112,6 +128,63 @@ class PublishingService:
                 ensure_ascii=False,
 
             )
+
+        #
+        # Publish to Show
+        #
+
+        show_folder = self.shows / show
+
+        show_folder.mkdir(
+
+            parents=True,
+
+            exist_ok=True,
+
+        )
+
+        metadata = show_folder / f"{episode}.json"
+
+        with open(
+
+            metadata,
+
+            "w",
+
+            encoding="utf-8",
+
+        ) as f:
+
+            json.dump(
+
+                published.__dict__,
+
+                f,
+
+                indent=4,
+
+                ensure_ascii=False,
+
+            )
+
+        #
+        # Copy Audio
+        #
+
+        source_audio = Path(audio)
+
+        if source_audio.exists():
+
+            shutil.copy2(
+
+                source_audio,
+
+                show_folder / source_audio.name,
+
+            )
+
+        print(f"Published -> Library : {episode}")
+        print(f"Published -> Show    : {show}")
 
         return published
 
