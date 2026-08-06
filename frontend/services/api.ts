@@ -34,7 +34,8 @@ export async function uploadAudio(
   });
 
   if (!response.ok) {
-    throw new Error(await response.text());
+    const message = await response.text();
+    throw new Error(message || "Upload failed");
   }
 
   return response.json();
@@ -44,7 +45,8 @@ export async function getJob(jobId: string) {
   const response = await fetch(`${API}/jobs/${jobId}`);
 
   if (!response.ok) {
-    throw new Error(await response.text());
+    const message = await response.text();
+    throw new Error(message || "Unable to fetch job");
   }
 
   return response.json();
@@ -54,7 +56,41 @@ export async function getProject(projectId: string) {
   const response = await fetch(`${API}/projects/${projectId}`);
 
   if (!response.ok) {
-    throw new Error(await response.text());
+    const message = await response.text();
+    throw new Error(message || "Unable to fetch project");
+  }
+
+  return response.json();
+}
+
+export async function getLibrary() {
+  const response = await fetch(`${API}/library`);
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "Unable to load library");
+  }
+
+  return response.json();
+}
+
+export async function getShows() {
+  const response = await fetch(`${API}/shows`);
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "Unable to load shows");
+  }
+
+  return response.json();
+}
+
+export async function getShow(showId: string) {
+  const response = await fetch(`${API}/shows/${showId}`);
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "Unable to load show");
   }
 
   return response.json();
