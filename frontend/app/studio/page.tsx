@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const API = "http://127.0.0.1:8000";
+import { uploadAudio, getJob } from "@/services/api";
 
 export default function StudioPage() {
   const [splitAudio, setSplitAudio] = useState(false);
@@ -27,15 +27,7 @@ useEffect(() => {
 
     try {
 
-      const response = await fetch(
-
-        API + "/jobs/" + jobId
-
-      );
-
-      if (!response.ok) return;
-
-      const job = await response.json();
+      const job = await getJob(jobId);
 
       setStatus(job.status);
 
@@ -116,18 +108,23 @@ async function runAI() {
 
     form.append("publish_to", "download");
 
-    const response = await fetch(API + "/upload", {
-      method: "POST",
-      body: form,
-    });
+    const data = await uploadAudio(file, {
+  mode: "podcast",
+  enhance_audio: true,
+  normalize_audio: true,
+  transcribe: true,
+  summarize: true,
+  keywords: true,
+  topics: true,
+  chapters: true,
+  speaker_identification: true,
+  split_audio: splitAudio,
+  split_method: "ai",
+  split_minutes: 20,
+  publish_to: "download",
+});
 
-    if (!response.ok) {
-      throw new Error("Upload failed");
-    }
-
-    const data = await response.json();
-
-    setJobId(data.job_id);
+setJobId(data.job_id);
 
   } catch (e) {
 
