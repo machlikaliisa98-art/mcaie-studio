@@ -63,7 +63,7 @@ export default function TranscriptPanel({
           color: "#153848",
         }}
       >
-        Transcript
+        {transcript || "Transcript is still being generated."}
       </h2>
 
       <div

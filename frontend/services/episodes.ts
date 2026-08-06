@@ -1,19 +1,11 @@
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "http://localhost:8000";
+import { API_URL } from "@/config/api";
 
 export async function getEpisodes(jobId: string) {
-  const response = await fetch(`${API_BASE}/episodes/${jobId}`, {
-    cache: "no-store",
-  });
+  const response = await fetch(`${API_URL}/episodes/${jobId}`);
 
   if (!response.ok) {
-    return [];
+    throw new Error(await response.text());
   }
 
   return response.json();
-}
-
-export function episodeUrl(jobId: string, filename: string) {
-  return `${API_BASE}/episodes/file/${jobId}/${filename}`;
 }

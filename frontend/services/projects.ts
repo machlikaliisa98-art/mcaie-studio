@@ -1,63 +1,21 @@
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "http://localhost:8000";
+import { API_URL } from "@/config/api";
 
 export async function getProjects() {
-
-  const response = await fetch(
-
-    `${API_BASE}/projects/`,
-
-    {
-
-      cache: "no-store",
-
-    }
-
-  );
+  const response = await fetch(`${API_URL}/projects`);
 
   if (!response.ok) {
-
-    throw new Error(
-
-      "Failed to load projects."
-
-    );
-
+    throw new Error(await response.text());
   }
 
   return response.json();
-
 }
 
-export async function getProject(
-
-  projectId: string
-
-) {
-
-  const response = await fetch(
-
-    `${API_BASE}/projects/${projectId}`,
-
-    {
-
-      cache: "no-store",
-
-    }
-
-  );
+export async function getProject(id: string) {
+  const response = await fetch(`${API_URL}/projects/${id}`);
 
   if (!response.ok) {
-
-    throw new Error(
-
-      "Project not found."
-
-    );
-
+    throw new Error(await response.text());
   }
 
   return response.json();
-
 }

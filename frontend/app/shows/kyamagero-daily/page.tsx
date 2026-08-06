@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-const API = "http://127.0.0.1:8000";
+import { API_URL } from "@/config/api";
+
+const API = API_URL;
 const SHOW = "kyamagero-daily";
 
 export default function KyamageroDailyPage() {

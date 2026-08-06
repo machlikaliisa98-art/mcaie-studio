@@ -1,31 +1,11 @@
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "http://localhost:8000";
+import { API_URL } from "@/config/api";
 
 export async function getDashboard() {
-
-  const response = await fetch(
-
-    `${API_BASE}/dashboard/`,
-
-    {
-
-      cache: "no-store",
-
-    }
-
-  );
+  const response = await fetch(`${API_URL}/dashboard`);
 
   if (!response.ok) {
-
-    throw new Error(
-
-      "Failed to load dashboard."
-
-    );
-
+    throw new Error(await response.text());
   }
 
   return response.json();
-
 }

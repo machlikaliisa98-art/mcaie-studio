@@ -1,59 +1,21 @@
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "http://localhost:8000";
+import { API_URL } from "@/config/api";
 
 export async function getLibrary() {
-
-  const response = await fetch(
-
-    `${API_BASE}/library/`,
-
-    {
-
-      cache: "no-store",
-
-    }
-
-  );
+  const response = await fetch(`${API_URL}/library`);
 
   if (!response.ok) {
-
-    throw new Error(
-
-      "Failed to load library."
-
-    );
-
+    throw new Error(await response.text());
   }
 
   return response.json();
-
 }
 
-export async function getLatestEpisodes() {
-
-  const response = await fetch(
-
-    `${API_BASE}/library/latest`,
-
-    {
-
-      cache: "no-store",
-
-    }
-
-  );
+export async function getConversation(id: string) {
+  const response = await fetch(`${API_URL}/library/${id}`);
 
   if (!response.ok) {
-
-    throw new Error(
-
-      "Failed to load latest episodes."
-
-    );
-
+    throw new Error(await response.text());
   }
 
   return response.json();
-
 }
