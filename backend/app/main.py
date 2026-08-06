@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.analytics import router as analytics_router
 from app.api.audio import router as audio_router
-from app.api.auth import router as auth_router
 from app.api.dashboard import router as dashboard_router
 from app.api.episodes import router as episodes_router
 from app.api.jobs import router as jobs_router
@@ -16,6 +15,9 @@ from app.api.shows import router as shows_router
 from app.api.studio import router as studio_router
 from app.api.upload import router as upload_router
 from app.api.websocket import router as websocket_router
+
+# Authentication temporarily disabled
+# from app.api.auth import router as auth_router
 
 app = FastAPI(
     title="FONS API",
@@ -33,12 +35,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# ==========================================================
-# Authentication
-# ==========================================================
-
-app.include_router(auth_router)
 
 # ==========================================================
 # Upload & Production
