@@ -1,4 +1,6 @@
-const API = "http://127.0.0.1:8000";
+const API =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://site--mcaie-backend--ws6ylxkqmfw2.code.run";
 
 export async function uploadAudio(
   file: File,
@@ -32,7 +34,7 @@ export async function uploadAudio(
   });
 
   if (!response.ok) {
-    throw new Error("Upload failed");
+    throw new Error(await response.text());
   }
 
   return response.json();
@@ -42,7 +44,7 @@ export async function getJob(jobId: string) {
   const response = await fetch(`${API}/jobs/${jobId}`);
 
   if (!response.ok) {
-    throw new Error("Unable to fetch job");
+    throw new Error(await response.text());
   }
 
   return response.json();
@@ -52,7 +54,7 @@ export async function getProject(projectId: string) {
   const response = await fetch(`${API}/projects/${projectId}`);
 
   if (!response.ok) {
-    throw new Error("Unable to fetch project");
+    throw new Error(await response.text());
   }
 
   return response.json();
