@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { API_URL } from "@/config/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,6 +18,11 @@ export default function LoginPage() {
   const [debug, setDebug] = useState("");
 
   async function handleLogin() {
+    if (!email.trim() || !password) {
+      setError("Please enter your email or username and password.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     setStatus("");
@@ -24,57 +30,84 @@ export default function LoginPage() {
 
     try {
       const payload = {
-        email,
+        email: email.trim(),
         password,
       };
 
       setDebug(
         "REQUEST\n\n" +
-        JSON.stringify(payload, null, 2)
+          JSON.stringify(
+            {
+              email: payload.email,
+              password: "********",
+            },
+            null,
+            2
+          )
       );
 
-      const response = await fetch(
-        import { API_URL } from "@/config/api";
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-      const data = await response.json();
+      const text = await response.text();
+
+      let data: any;
+
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = {
+          detail: text || "The server returned an invalid response.",
+        };
+      }
 
       setStatus(response.status.toString());
 
       setDebug(
         "RESPONSE\n\n" +
-        JSON.stringify(data, null, 2)
+          JSON.stringify(data, null, 2)
       );
 
       if (!response.ok) {
-        setError(data.detail || "Login failed.");
-        setLoading(false);
+        setError(
+          data?.detail ||
+            data?.message ||
+            "Login failed."
+        );
         return;
       }
 
-      localStorage.setItem("token", data.access_token);
-      localStorage.setItem(
-        "creator",
-        JSON.stringify(data.creator)
-      );
+      if (data?.access_token) {
+        localStorage.setItem(
+          "token",
+          data.access_token
+        );
+      }
+
+      if (data?.creator) {
+        localStorage.setItem(
+          "creator",
+          JSON.stringify(data.creator)
+        );
+      }
 
       router.push("/dashboard");
     } catch (err) {
-      console.error(err);
+      console.error("Login error:", err);
 
-      setError("Unable to connect to the server.");
+      setError(
+        "Unable to connect to the FONS server."
+      );
 
       setDebug(String(err));
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   return (
@@ -139,7 +172,8 @@ export default function LoginPage() {
             maxWidth: 700,
           }}
         >
-          Sign in to continue creating, preserving and sharing
+          Sign in to continue creating,
+          preserving and sharing
           conversations that matter.
         </p>
       </section>
@@ -210,9 +244,12 @@ export default function LoginPage() {
 
             <input
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
               type="text"
               placeholder="name@example.com"
+              autoComplete="username"
               style={{
                 width: "100%",
                 padding: "18px",
@@ -238,9 +275,12 @@ export default function LoginPage() {
 
             <input
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
               type="password"
               placeholder="••••••••"
+              autoComplete="current-password"
               style={{
                 width: "100%",
                 padding: "18px",
@@ -269,10 +309,15 @@ export default function LoginPage() {
               border: "none",
               fontWeight: 700,
               fontSize: 16,
-              cursor: "pointer",
+              cursor: loading
+                ? "not-allowed"
+                : "pointer",
+              opacity: loading ? 0.7 : 1,
             }}
           >
-            {loading ? "Signing In..." : "Sign In"}
+            {loading
+              ? "Signing In..."
+              : "Sign In"}
           </button>
 
           {status && (
@@ -286,7 +331,8 @@ export default function LoginPage() {
                 whiteSpace: "pre-wrap",
               }}
             >
-              <strong>Status:</strong> {status}
+              <strong>Status:</strong>{" "}
+              {status}
             </div>
           )}
 
@@ -316,7 +362,13 @@ export default function LoginPage() {
             Don't have an account?
           </div>
 
-          <Link href="/register">
+          <Link
+            href="/register"
+            style={{
+              display: "block",
+              textDecoration: "none",
+            }}
+          >
             <button
               style={{
                 width: "100%",

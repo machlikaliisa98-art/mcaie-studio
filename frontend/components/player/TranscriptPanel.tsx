@@ -59,12 +59,24 @@ export default function TranscriptPanel({
       <h2
         style={{
           marginTop: 0,
-          marginBottom: 30,
+          marginBottom: 8,
           color: "#153848",
         }}
       >
-        {transcript || "Transcript is still being generated."}
+        Transcript
       </h2>
+
+      <p
+        style={{
+          marginTop: 0,
+          marginBottom: 30,
+          color: "#777",
+          lineHeight: 1.7,
+        }}
+      >
+        Conversation transcript with speaker identification and
+        timestamps.
+      </p>
 
       <div
         style={{
@@ -78,6 +90,7 @@ export default function TranscriptPanel({
         {transcript.map((segment) => (
           <button
             key={segment.id}
+            type="button"
             style={{
               textAlign: "left",
               background: segment.active
@@ -94,6 +107,7 @@ export default function TranscriptPanel({
                 display: "flex",
                 justifyContent: "space-between",
                 marginBottom: 10,
+                gap: 20,
               }}
             >
               <strong
@@ -108,6 +122,7 @@ export default function TranscriptPanel({
                 style={{
                   color: "#B48A45",
                   fontWeight: 700,
+                  whiteSpace: "nowrap",
                 }}
               >
                 {segment.start}
