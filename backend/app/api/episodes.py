@@ -1,7 +1,10 @@
+from pathlib import Path
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
 from app.config import PROCESSED
+
 
 router = APIRouter(
     prefix="/episodes",
@@ -10,36 +13,63 @@ router = APIRouter(
 
 
 @router.get("/{job_id}")
-def list_episodes(job_id: str):
+def list_episodes(
+    job_id: str,
+):
 
-    folder = PROCESSED / job_id
+    folder = (
+        PROCESSED /
+        job_id
+    )
 
     if not folder.exists():
         return []
 
-    return sorted(
-        [
-            {
-                "id": index + 1,
-                "title": f"Episode {index + 1:03d}",
-                "filename": file.name,
-                "job_id": job_id,
-            }
-            for index, file in enumerate(
-                sorted(folder.glob("*.wav"))
-            )
-        ],
-        key=lambda x: x["id"],
+    files = sorted(
+        folder.glob(
+            "*.wav"
+        )
     )
 
+    episodes = []
 
-@router.get("/file/{job_id}/{filename}")
+    for index, file in enumerate(
+        files,
+        start=1,
+    ):
+
+        episodes.append(
+            {
+                "id": index,
+
+                "episode_number": index,
+
+                "title": (
+                    f"Episode {index}"
+                ),
+
+                "filename": file.name,
+
+                "job_id": job_id,
+            }
+        )
+
+    return episodes
+
+
+@router.get(
+    "/file/{job_id}/{filename}"
+)
 def get_episode(
     job_id: str,
     filename: str,
 ):
 
-    file = PROCESSED / job_id / filename
+    file = (
+        PROCESSED /
+        job_id /
+        filename
+    )
 
     if not file.exists():
 

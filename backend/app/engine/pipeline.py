@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from pathlib import Path
 import shutil
 import traceback
@@ -30,693 +31,1087 @@ from app.api.jobs import (
 
 from app.services.projects import projects
 
-from app.config import (
-    PROCESSED,
-)
+from app.config import PROCESSED
 
 from app.services.publishing import publisher
 
+
+@dataclass
+class ProcessingOptions:
+
+    # ==========================================================
+    # AUDIO PROCESSING
+    # ==========================================================
+
+    enhance_audio: bool = False
+    normalize_audio: bool = False
+
+    # ==========================================================
+    # AI PROCESSING
+    # ==========================================================
+
+    transcribe: bool = False
+    summarize: bool = False
+    keywords: bool = False
+    topics: bool = False
+    chapters: bool = False
+    speaker_identification: bool = False
+
+    # ==========================================================
+    # EPISODE SPLITTING
+    # ==========================================================
+
+    split_audio: bool = False
+    split_method: str = "fixed"
+    split_minutes: int = 20
+
+    # ==========================================================
+    # PUBLISHING
+    # ==========================================================
+
+    publish_to: str = "download"
+
+    # ==========================================================
+    # PROGRAMME / SEASON
+    # ==========================================================
+
+    programme: str = ""
+    season: int = 1
+
+    # ==========================================================
+    # AUDIO PRESERVATION
+    # ==========================================================
+
+    preserve_audio: bool = True
+
+
 class ProductionPipeline:
-
-    """
-    MCAIE Production Pipeline v2
-
-    Upload
-        ↓
-    Inspect
-        ↓
-    Normalize
-        ↓
-    Prepare
-        ↓
-    Voice Detection
-        ↓
-    Intro Detection
-        ↓
-    Split
-        ↓
-    Master
-        ↓
-    Publish (next)
-        ↓
-    AI (next)
-    """
 
     def __init__(self):
 
+        # ======================================================
+        # CORE ENGINES
+        # ======================================================
+
         self.inspector = AudioInspector()
-
         self.normalizer = AudioNormalizer()
-
         self.preprocessor = AudioPreprocessor()
-
         self.vad = VoiceActivityDetector()
-
         self.intro = IntroDetector()
-
         self.splitter = EpisodeSplitter()
-
         self.master = AudioMaster()
 
-        self.knowledge = KnowledgeEngine()
+        # ======================================================
+        # LAZY AI ENGINES
+        # ======================================================
 
-        self.speech = SpeechEngine()
-        self.speech.initialize()
+        self.speech = None
+        self.language = None
+        self.knowledge = None
 
-        self.language = LanguageEngine()
-        self.language.initialize()
+    # ==========================================================
+    # LAZY AI INITIALIZATION
+    # ==========================================================
+
+    def _ensure_speech(self):
+
+        if self.speech is None:
+
+            print()
+            print(
+                "MCAIE: Initializing Speech Engine..."
+            )
+
+            self.speech = SpeechEngine()
+            self.speech.initialize()
+
+            print(
+                "MCAIE: Speech Engine Ready."
+            )
+
+        return self.speech
+
+    def _ensure_language(self):
+
+        if self.language is None:
+
+            print()
+            print(
+                "MCAIE: Initializing Language Engine..."
+            )
+
+            self.language = LanguageEngine()
+            self.language.initialize()
+
+            print(
+                "MCAIE: Language Engine Ready."
+            )
+
+        return self.language
+
+    def _ensure_knowledge(self):
+
+        if self.knowledge is None:
+
+            print()
+            print(
+                "MCAIE: Initializing Knowledge Engine..."
+            )
+
+            self.knowledge = KnowledgeEngine()
+
+            print(
+                "MCAIE: Knowledge Engine Ready."
+            )
+
+        return self.knowledge
+
+    # ==========================================================
+    # PROCESS
+    # ==========================================================
 
     def process(
-
         self,
-
         project_id: str,
-
         job_id: str,
-
         audio_file: str,
-
         mode: str = "podcast",
-
+        options: ProcessingOptions | None = None,
     ):
 
-        print("\n" + "=" * 70)
+        if options is None:
+            options = ProcessingOptions()
+
+        print()
+        print("=" * 70)
         print("MCAIE PRODUCTION PIPELINE")
         print("=" * 70)
 
-        processed_folder = PROCESSED / job_id
+        print()
+        print("PROCESSING CONFIGURATION")
+        print("-" * 70)
+
+        print(
+            f"Enhance Audio          : "
+            f"{options.enhance_audio}"
+        )
+
+        print(
+            f"Normalize Audio        : "
+            f"{options.normalize_audio}"
+        )
+
+        print(
+            f"Transcribe             : "
+            f"{options.transcribe}"
+        )
+
+        print(
+            f"Summarize              : "
+            f"{options.summarize}"
+        )
+
+        print(
+            f"Keywords               : "
+            f"{options.keywords}"
+        )
+
+        print(
+            f"Topics                 : "
+            f"{options.topics}"
+        )
+
+        print(
+            f"Chapters               : "
+            f"{options.chapters}"
+        )
+
+        print(
+            f"Speaker ID             : "
+            f"{options.speaker_identification}"
+        )
+
+        print(
+            f"Split Audio            : "
+            f"{options.split_audio}"
+        )
+
+        print(
+            f"Split Method           : "
+            f"{options.split_method}"
+        )
+
+        print(
+            f"Split Minutes          : "
+            f"{options.split_minutes}"
+        )
+
+        print(
+            f"Preserve Audio         : "
+            f"{options.preserve_audio}"
+        )
+
+        print(
+            f"Publish To             : "
+            f"{options.publish_to}"
+        )
+
+        print(
+            f"Programme              : "
+            f"{options.programme or '(not specified)'}"
+        )
+
+        print(
+            f"Season                 : "
+            f"{options.season}"
+        )
+
+        print("-" * 70)
+
+        # ======================================================
+        # ENGINE REQUIREMENTS
+        # ======================================================
+
+        language_required = (
+            options.summarize
+            or options.keywords
+            or options.topics
+        )
+
+        speech_required = (
+            options.transcribe
+            or language_required
+            or options.chapters
+            or options.speaker_identification
+        )
+
+        knowledge_required = (
+            options.transcribe
+            or language_required
+        )
+
+        print()
+        print("ENGINE REQUIREMENTS")
+        print("-" * 70)
+
+        print(
+            f"Speech Engine         : "
+            f"{speech_required}"
+        )
+
+        print(
+            f"Language Engine       : "
+            f"{language_required}"
+        )
+
+        print(
+            f"Knowledge Engine      : "
+            f"{knowledge_required}"
+        )
+
+        print("-" * 70)
+
+        # ======================================================
+        # OUTPUT
+        # ======================================================
+
+        processed_folder = (
+            PROCESSED /
+            job_id
+        )
 
         processed_folder.mkdir(
-
             parents=True,
-
             exist_ok=True,
-
         )
 
         try:
 
-            #
+            # ==================================================
             # STEP 1
-            #
+            # ==================================================
 
-            print("\nSTEP 1 - AUDIO INSPECTION")
+            print()
+            print("STEP 1 - AUDIO INSPECTION")
 
             update_job(
-
                 job_id,
-
                 "Inspecting Audio",
-
                 5,
-
             )
 
             projects.update(
-
                 project_id,
-
                 status="Inspecting Audio",
-
                 progress=5,
-
             )
 
             self.inspector.inspect(
-
-                audio_file,
-
+                audio_file
             )
 
-            #
+            # ==================================================
             # STEP 2
-            #
+            # ==================================================
 
-            print("\nSTEP 2 - AUDIO NORMALIZATION")
+            if options.normalize_audio:
 
-            update_job(
-
-                job_id,
-
-                "Normalizing Audio",
-
-                10,
-
-            )
-
-            projects.update(
-
-                project_id,
-
-                status="Normalizing Audio",
-
-                progress=10,
-
-            )
-
-            audio_file = self.normalizer.normalize(
-
-                audio_file,
-
-            )
-
-            #
-            # STUDIO MODE
-            #
-
-            if mode == "studio":
-
-                print("\nSTEP 3 - STUDIO MASTER")
-
-                update_job(
-
-                    job_id,
-
-                    "Studio Mastering",
-
-                    35,
-
-                )
-
-                projects.update(
-
-                    project_id,
-
-                    status="Studio Mastering",
-
-                    progress=35,
-
-                )
-
-                output = processed_folder / "studio_master.wav"
-
-                self.master.process(
-
-                    audio_file,
-
-                    str(output),
-                )
-
-                print("\nSTEP 4 - TRANSCRIPTION")
-
-                transcript = self.speech.transcribe(
-
-                    SpeechRequest(
-
-                        audio_file=str(output),
-
-                    )
-
-                )
-
-                print("\n==============================")
-                print("TRANSCRIPT")
-                print("==============================")
-                print(transcript.transcript)
-
-                print("\nSTEP 5 - LANGUAGE ANALYSIS")
-
-                keywords = self.language.process(
-
-                    LanguageRequest(
-
-                        task="keywords",
-
-                        text=transcript.transcript,
-
-                    )
-
-                )
-
-                topics = self.language.process(
-
-                    LanguageRequest(
-
-                        task="topics",
-
-                        text=transcript.transcript,
-
-                    )
-
-                )
-
-                summary = self.language.process(
-
-                    LanguageRequest(
-
-                        task="summary",
-
-                        text=transcript.transcript,
-
-                    )
-
-                )
-
-                print("\n==============================")
-                print("SUMMARY")
-                print("==============================")
-                print(summary.result)
-
-                print("\n==============================")
-                print("TOPICS")
-                print("==============================")
-                print(topics.result)
-
-                print("\n==============================")
-                print("KEYWORDS")
-                print("==============================")
-                print(keywords.result)
                 print()
+                print(
+                    "STEP 2 - NORMALIZATION ENABLED"
+                )
 
                 update_job(
-
                     job_id,
-
-                    "Finalizing",
-
-                    98,
-
+                    "Normalizing Audio",
+                    10,
                 )
 
                 projects.update(
-
                     project_id,
-
-                    status="Completed",
-
-                    progress=100,
-
-                    published=True,
-
+                    status="Normalizing Audio",
+                    progress=10,
                 )
 
-                complete_job(
+                audio_file = (
+                    self.normalizer.normalize(
+                        audio_file
+                    )
+                )
 
+            else:
+
+                print()
+                print(
+                    "STEP 2 - NORMALIZATION SKIPPED"
+                )
+
+            # ==================================================
+            # STEP 3-5
+            # ==================================================
+
+            intro_start = 0.0
+
+            if (
+                options.split_audio
+                and
+                options.split_method.lower()
+                == "ai"
+            ):
+
+                print()
+                print(
+                    "STEP 3 - AI AUDIO ANALYSIS"
+                )
+
+                update_job(
                     job_id,
-
+                    "Preparing Audio",
+                    15,
                 )
 
-                print("\nSTUDIO COMPLETE")
+                projects.update(
+                    project_id,
+                    status="Preparing Audio",
+                    progress=15,
+                )
 
-                return
+                analysis_audio = (
+                    self.preprocessor
+                    .create_analysis_audio(
+                        audio_file
+                    )
+                )
 
-            #
-            # PODCAST MODE
-            #
+                print()
+                print(
+                    "STEP 4 - VOICE DETECTION"
+                )
 
-            print("\nSTEP 3 - PREPARATION")
+                update_job(
+                    job_id,
+                    "Voice Detection",
+                    20,
+                )
 
-            update_job(
+                projects.update(
+                    project_id,
+                    status="Voice Detection",
+                    progress=20,
+                )
 
-                job_id,
+                self.vad.detect(
+                    analysis_audio
+                )
 
-                "Preparing Audio",
+                print()
+                print(
+                    "STEP 5 - INTRO DETECTION"
+                )
 
-                15,
+                update_job(
+                    job_id,
+                    "Detecting Intro",
+                    25,
+                )
 
-            )
+                projects.update(
+                    project_id,
+                    status="Detecting Intro",
+                    progress=25,
+                )
 
-            projects.update(
+                intro_start = (
+                    self.intro.detect(
+                        audio_file
+                    )
+                )
 
-                project_id,
+            else:
 
-                status="Preparing Audio",
+                print()
+                print(
+                    "STEP 3 - AI ANALYSIS SKIPPED"
+                )
 
-                progress=15,
+                print()
+                print(
+                    "STEP 4 - VOICE DETECTION SKIPPED"
+                )
 
-            )
+                print()
+                print(
+                    "STEP 5 - INTRO DETECTION SKIPPED"
+                )
 
-            analysis_audio = self.preprocessor.create_analysis_audio(
-
-                audio_file,
-
-            )
-
-            #
-            # STEP 4
-            #
-
-            print("\nSTEP 4 - VOICE DETECTION")
-
-            update_job(
-
-                job_id,
-
-                "Voice Detection",
-
-                25,
-
-            )
-
-            projects.update(
-
-                project_id,
-
-                status="Voice Detection",
-
-                progress=25,
-
-            )
-
-            self.vad.detect(
-
-                analysis_audio,
-
-            )
-
-            #
-            # STEP 5
-            #
-
-            print("\nSTEP 5 - INTRO DETECTION")
-
-            intro_start = self.intro.detect(
-
-                audio_file,
-
-            )
-
-            #
+            # ==================================================
             # STEP 6
-            #
+            # ==================================================
 
-            print("\nSTEP 6 - EPISODE SPLITTING")
+            if options.split_audio:
 
-            update_job(
+                print()
+                print(
+                    "STEP 6 - EPISODE SPLITTING"
+                )
 
-                job_id,
+                update_job(
+                    job_id,
+                    "Creating Episodes",
+                    40,
+                )
 
-                "Creating Episodes",
+                projects.update(
+                    project_id,
+                    status="Creating Episodes",
+                    progress=40,
+                )
 
-                40,
+                episodes = (
+                    self.splitter.split(
+                        audio_file=audio_file,
+                        job_id=job_id,
+                        trim_start=intro_start,
+                        episode_minutes=(
+                            options.split_minutes
+                        ),
+                        preserve_audio=(
+                            options.preserve_audio
+                        ),
+                    )
+                )
 
-            )
+            else:
 
-            projects.update(
+                print()
+                print(
+                    "STEP 6 - EPISODE SPLITTING SKIPPED"
+                )
 
-                project_id,
+                source = Path(
+                    audio_file
+                )
 
-                status="Creating Episodes",
+                output = (
+                    processed_folder /
+                    source.name
+                )
 
-                progress=40,
+                shutil.copy2(
+                    source,
+                    output,
+                )
 
-            )
-
-            episodes = self.splitter.split(
-
-                audio_file=audio_file,
-
-                job_id=job_id,
-
-                trim_start=intro_start,
-
-                episode_minutes=30,
-
-            )
+                episodes = [
+                    output
+                ]
 
             total = len(
-
-                episodes,
-
-            )
-
-            print(
-
-                f"\nEpisodes Created: {total}"
-
+                episodes
             )
 
             if total == 0:
 
                 raise RuntimeError(
-
-                    "Episode splitter returned no episodes."
-
+                    "No output episodes were produced."
                 )
-            #
+
+            print()
+            print(
+                f"OUTPUT FILES: {total}"
+            )
+
+            # ==================================================
             # STEP 7
-            #
+            # ==================================================
 
             for index, episode in enumerate(
-
                 episodes
-
             ):
 
-                progress = 40 + int(
-
-                    ((index + 1) / total) * 55
-
+                progress = (
+                    40
+                    +
+                    int(
+                        (
+                            (index + 1)
+                            /
+                            total
+                        )
+                        * 50
+                    )
                 )
 
-                status = (
+                print()
+                print("=" * 60)
 
-                    f"Mastering Episode "
-
+                print(
+                    f"EPISODE "
                     f"{index + 1}/{total}"
-
-                )
-
-                update_job(
-
-                    job_id,
-
-                    status,
-
-                    progress,
-
-                )
-
-                projects.update(
-
-                    project_id,
-
-                    status=status,
-
-                    progress=progress,
-
-                )
-
-                output = (
-
-                    processed_folder /
-
-                    episode.name
-
                 )
 
                 print(
-
-                    f"\nMastering "
-
+                    f"File: "
                     f"{episode.name}"
-
                 )
 
-                try:
+                print("=" * 60)
+
+                update_job(
+                    job_id,
+                    (
+                        f"Processing Episode "
+                        f"{index + 1}/{total}"
+                    ),
+                    progress,
+                )
+
+                projects.update(
+                    project_id,
+                    status=(
+                        f"Processing Episode "
+                        f"{index + 1}/{total}"
+                    ),
+                    progress=progress,
+                )
+
+                output = (
+                    processed_folder /
+                    episode.name
+                )
+
+                # ==============================================
+                # AUDIO ENHANCEMENT
+                # ==============================================
+
+                if options.enhance_audio:
+
+                    print(
+                        "Audio enhancement: ENABLED"
+                    )
 
                     self.master.process(
-
                         str(episode),
-
                         str(output),
-
                     )
 
-                                        #
-                    # Speech Intelligence
-                    #
+                else:
 
-                    speech = self.speech.transcribe(
-                        SpeechRequest(
-                            audio_file=str(output),
+                    print(
+                        "Audio enhancement: DISABLED"
+                    )
+
+                    if (
+                        Path(episode).resolve()
+                        !=
+                        output.resolve()
+                    ):
+
+                        shutil.copy2(
+                            episode,
+                            output,
+                        )
+
+                # ==============================================
+                # TRANSCRIPTION
+                # ==============================================
+
+                speech = None
+
+                if options.transcribe:
+
+                    print(
+                        "Transcription: ENABLED"
+                    )
+
+                    speech_engine = (
+                        self._ensure_speech()
+                    )
+
+                    speech = (
+                        speech_engine.transcribe(
+                            SpeechRequest(
+                                audio_file=str(
+                                    output
+                                )
+                            )
                         )
                     )
 
-                    #
-                    # Language Intelligence
-                    #
+                else:
 
-                    summary = self.language.process(
-                        LanguageRequest(
-                            task="summary",
-                            text=speech.transcript,
-                        )
+                    print(
+                        "Transcription: DISABLED"
                     )
 
-                    keywords = self.language.process(
-                        LanguageRequest(
-                            task="keywords",
-                            text=speech.transcript,
+                # ==============================================
+                # LANGUAGE
+                # ==============================================
+
+                summary = None
+                keywords = None
+                topics = None
+
+                if speech:
+
+                    if options.summarize:
+
+                        print(
+                            "Summary: ENABLED"
                         )
+
+                        language_engine = (
+                            self._ensure_language()
+                        )
+
+                        summary = (
+                            language_engine.process(
+                                LanguageRequest(
+                                    task="summary",
+                                    text=(
+                                        speech.transcript
+                                    ),
+                                )
+                            )
+                        )
+
+                    else:
+
+                        print(
+                            "Summary: DISABLED"
+                        )
+
+                    if options.keywords:
+
+                        print(
+                            "Keywords: ENABLED"
+                        )
+
+                        language_engine = (
+                            self._ensure_language()
+                        )
+
+                        keywords = (
+                            language_engine.process(
+                                LanguageRequest(
+                                    task="keywords",
+                                    text=(
+                                        speech.transcript
+                                    ),
+                                )
+                            )
+                        )
+
+                    else:
+
+                        print(
+                            "Keywords: DISABLED"
+                        )
+
+                    if options.topics:
+
+                        print(
+                            "Topics: ENABLED"
+                        )
+
+                        language_engine = (
+                            self._ensure_language()
+                        )
+
+                        topics = (
+                            language_engine.process(
+                                LanguageRequest(
+                                    task="topics",
+                                    text=(
+                                        speech.transcript
+                                    ),
+                                )
+                            )
+                        )
+
+                    else:
+
+                        print(
+                            "Topics: DISABLED"
+                        )
+
+                else:
+
+                    if options.summarize:
+
+                        print(
+                            "Summary requested "
+                            "but transcription "
+                            "is disabled."
+                        )
+
+                    if options.keywords:
+
+                        print(
+                            "Keywords requested "
+                            "but transcription "
+                            "is disabled."
+                        )
+
+                    if options.topics:
+
+                        print(
+                            "Topics requested "
+                            "but transcription "
+                            "is disabled."
+                        )
+
+                # ==============================================
+                # CHAPTERS
+                # ==============================================
+
+                if options.chapters:
+
+                    print(
+                        "Chapters requested, "
+                        "but no chapter engine is "
+                        "currently connected."
                     )
 
-                    topics = self.language.process(
-                        LanguageRequest(
-                            task="topics",
-                            text=speech.transcript,
-                        )
+                # ==============================================
+                # SPEAKER IDENTIFICATION
+                # ==============================================
+
+                if options.speaker_identification:
+
+                    print(
+                        "Speaker identification "
+                        "requested, but no speaker "
+                        "engine is currently connected."
                     )
 
-                    embedding = self.language.process(
-                        LanguageRequest(
-                            task="embeddings",
-                            text=speech.transcript,
-                        )
+                # ==============================================
+                # KNOWLEDGE
+                # ==============================================
+
+                if speech:
+
+                    print(
+                        "Knowledge Engine: ENABLED"
                     )
 
-                    #
-                    # Knowledge Engine
-                    #
+                    knowledge_engine = (
+                        self._ensure_knowledge()
+                    )
 
-                    self.knowledge.save(
+                    embedding = None
+
+                    try:
+
+                        language_engine = (
+                            self._ensure_language()
+                        )
+
+                        embedding = (
+                            language_engine.process(
+                                LanguageRequest(
+                                    task="embeddings",
+                                    text=(
+                                        speech.transcript
+                                    ),
+                                )
+                            )
+                        )
+
+                    except Exception:
+
+                        print(
+                            "Embedding generation "
+                            "unavailable."
+                        )
+
+                    knowledge_engine.save(
 
                         project_id=project_id,
 
-                        episode_id=episode.stem,
+                        episode_id=(
+                            episode.stem
+                        ),
 
-                        transcript=speech.transcript,
+                        transcript=(
+                            speech.transcript
+                        ),
 
-                        summary=summary.result,
+                        summary=(
+                            summary.result
+                            if summary
+                            else None
+                        ),
 
-                        keywords=keywords.metadata["keywords"],
+                        keywords=(
+                            keywords.metadata
+                            if keywords
+                            else None
+                        ),
 
-                        topics=topics.metadata["topics"],
+                        topics=(
+                            topics.metadata
+                            if topics
+                            else None
+                        ),
 
-                        embedding=embedding.metadata["embedding"],
+                        embedding=embedding,
 
                         metadata={
-
-                            "language": speech.language,
-
-                            "duration": speech.duration,
-
-                            "confidence": speech.confidence,
-
+                            "language": (
+                                speech.language
+                            ),
+                            "duration": (
+                                speech.duration
+                            ),
+                            "confidence": (
+                                speech.confidence
+                            ),
                         },
-
                     )
 
-                    #
-                    # Publish to FONS Library
-                    #
+                else:
 
-                    publisher.publish(
-                        project_id=project_id,
-                        episode=episode.stem,
-                        title=episode.stem.replace("_", " "),
-                        audio=str(output),
-                        transcript=speech.transcript,
-                        summary=summary.result,
-                        duration=speech.duration,
+                    print(
+                        "Knowledge Engine: SKIPPED"
+                    )
+
+                # ==============================================
+                # PUBLISHING
+                # ==============================================
+
+                if (
+                    options.publish_to
+                    and
+                    options.publish_to.lower()
+                    != "download"
+                ):
+
+                    show = (
+                        options.publish_to
+                    )
+
+                    programme = (
+                        options.programme.strip()
+                        if options.programme
+                        else "Untitled Programme"
+                    )
+
+                    season = (
+                        options.season
+                        if options.season >= 1
+                        else 1
+                    )
+
+                    # ------------------------------------------
+                    # IMPORTANT
+                    #
+                    # The publisher is now the authority for the
+                    # permanent episode number.
+                    #
+                    # We therefore do NOT use index + 1 for the
+                    # public title.
+                    #
+                    # The publisher returns the actual published
+                    # episode number.
+                    # ------------------------------------------
+
+                    print()
+                    print(
+                        "Publishing episode..."
+                    )
+
+                    published = (
+                        publisher.publish(
+
+                            project_id=(
+                                project_id
+                            ),
+
+                            episode=(
+                                episode.stem
+                            ),
+
+                            # Temporary title.
+                            # PublishingService will now use
+                            # the real permanent episode number.
+                            title=(
+                                f"{programme} "
+                                f"Season {season} "
+                                f"Episode "
+                                f"{index + 1}"
+                            ),
+
+                            audio=(
+                                str(output)
+                            ),
+
+                            duration=(
+                                (
+                                    speech.duration
+                                    if speech
+                                    else 0.0
+                                )
+                            ),
+
+                            show=(
+                                show
+                            ),
+
+                            programme=(
+                                programme
+                            ),
+
+                            season=(
+                                season
+                            ),
+
+                            episode_number=(
+                                index + 1
+                            ),
+
+                            transcript=(
+                                (
+                                    speech.transcript
+                                    if speech
+                                    else ""
+                                )
+                            ),
+
+                            summary=(
+                                (
+                                    summary.result
+                                    if summary
+                                    else ""
+                                )
+                            ),
+                        )
+                    )
+
+                    print()
+                    print(
+                        "PUBLISHED EPISODE:"
                     )
 
                     print(
-
-                        f"SUCCESS: "
-
-                        f"{episode.name}"
-
+                        f"Episode Number : "
+                        f"{published.episode_number}"
                     )
-
-                except Exception:
 
                     print(
-
-                        "\nEpisode failed."
-
+                        f"Episode Title  : "
+                        f"{published.title}"
                     )
 
-                    traceback.print_exc()
+                else:
 
-                    shutil.copy2(
-
-                        episode,
-
-                        output,
-
+                    print(
+                        "Publishing: "
+                        "DOWNLOAD ONLY"
                     )
 
-            #
+                print()
+                print(
+                    f"SUCCESS: "
+                    f"{episode.name}"
+                )
+
+            # ==================================================
             # STEP 8
-            #
+            # ==================================================
 
+            print()
             print(
-
-                "\nSTEP 8 - FINALIZING"
-
+                "STEP 8 - FINALIZING"
             )
 
             update_job(
-
                 job_id,
-
                 "Finalizing",
-
                 98,
-
             )
 
             projects.update(
-
                 project_id,
-
                 status="Finalizing",
-
                 progress=98,
-
             )
 
-            #
-            # Future hooks
-            #
-            # Speech Engine
-            # Summaries
-            # Chapters
-            # Knowledge
-            # Publishing
-            # Recommendations
-            #
-            #
-            # PIPELINE COMPLETE
-            #
-
             projects.update(
-
                 project_id,
-
                 status="Completed",
-
                 progress=100,
-
                 published=True,
-
             )
 
             complete_job(
-
-                job_id,
-
+                job_id
             )
 
-            print("\nPIPELINE COMPLETE")
+            print()
+            print("=" * 70)
+            print(
+                "MCAIE PIPELINE COMPLETE"
+            )
+            print("=" * 70)
 
         except Exception:
 
-            print("\nPIPELINE FAILED\n")
+            print()
+            print("=" * 70)
+            print(
+                "MCAIE PIPELINE FAILED"
+            )
+            print("=" * 70)
 
             traceback.print_exc()
 
             try:
 
                 projects.update(
-
                     project_id,
-
                     status="Failed",
-
                     progress=100,
-
                 )
 
             except Exception:
@@ -726,9 +1121,7 @@ class ProductionPipeline:
             try:
 
                 complete_job(
-
-                    job_id,
-
+                    job_id
                 )
 
             except Exception:

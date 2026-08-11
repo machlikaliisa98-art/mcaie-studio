@@ -1,506 +1,1617 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
-import { uploadAudio, getJob } from "@/services/api";
+const API =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://127.0.0.1:8000";
+
+
+type ProcessingOptions = {
+
+  enhance_audio: boolean;
+  normalize_audio: boolean;
+
+  transcribe: boolean;
+  summarize: boolean;
+  keywords: boolean;
+  topics: boolean;
+  chapters: boolean;
+  speaker_identification: boolean;
+
+  split_audio: boolean;
+  split_method: "fixed" | "ai";
+  split_minutes: number;
+
+  publish_to: string;
+
+  programme: string;
+  season: number;
+};
+
 
 export default function StudioPage() {
-  const [splitAudio, setSplitAudio] = useState(false);
 
-const [file, setFile] = useState<File | null>(null);
+  const [file, setFile] =
+    useState<File | null>(null);
 
-const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] =
+    useState(false);
 
-const [jobId, setJobId] = useState("");
+  const [jobId, setJobId] =
+    useState("");
 
-const [status, setStatus] = useState("Waiting...");
+  const [status, setStatus] =
+    useState("Waiting...");
 
-const [progress, setProgress] = useState(0);
+  const [progress, setProgress] =
+    useState(0);
 
-const pollRef = useRef<NodeJS.Timeout | null>(null);
 
-useEffect(() => {
+  const [options, setOptions] =
+    useState<ProcessingOptions>({
 
-  if (!jobId) return;
+      enhance_audio: false,
+      normalize_audio: false,
 
-  pollRef.current = setInterval(async () => {
+      transcribe: false,
+      summarize: false,
+      keywords: false,
+      topics: false,
+      chapters: false,
+      speaker_identification: false,
+
+      split_audio: false,
+      split_method: "fixed",
+      split_minutes: 20,
+
+      publish_to: "download",
+
+      programme: "You Rise Surrounded",
+      season: 1,
+    });
+
+
+  const pollRef =
+    useRef<NodeJS.Timeout | null>(null);
+
+
+  // ==========================================================
+  // JOB POLLING
+  // ==========================================================
+
+  useEffect(() => {
+
+    if (!jobId) {
+      return;
+    }
+
+
+    pollRef.current =
+      setInterval(
+        async () => {
+
+          try {
+
+            const response =
+              await fetch(
+                `${API}/jobs/${jobId}`
+              );
+
+
+            if (!response.ok) {
+              return;
+            }
+
+
+            const job =
+              await response.json();
+
+
+            setStatus(
+              job.status ??
+              "Processing..."
+            );
+
+
+            setProgress(
+              Number(
+                job.progress ?? 0
+              )
+            );
+
+
+            if (
+              job.status ===
+                "Completed" ||
+              job.status ===
+                "Failed" ||
+              Number(
+                job.progress ?? 0
+              ) >= 100
+            ) {
+
+              setUploading(false);
+
+
+              if (pollRef.current) {
+
+                clearInterval(
+                  pollRef.current
+                );
+
+                pollRef.current =
+                  null;
+              }
+            }
+
+          } catch (error) {
+
+            console.error(
+              "Job polling failed:",
+              error
+            );
+          }
+
+        },
+        1000
+      );
+
+
+    return () => {
+
+      if (pollRef.current) {
+
+        clearInterval(
+          pollRef.current
+        );
+
+        pollRef.current =
+          null;
+      }
+    };
+
+  }, [jobId]);
+
+
+  // ==========================================================
+  // OPTION HELPER
+  // ==========================================================
+
+  function setOption(
+    key: keyof ProcessingOptions,
+    value:
+      | boolean
+      | string
+      | number
+  ) {
+
+    setOptions(
+      current => ({
+        ...current,
+        [key]: value,
+      })
+    );
+  }
+
+
+  // ==========================================================
+  // UPLOAD
+  // ==========================================================
+
+  async function runProcessing() {
+
+    if (!file) {
+
+      alert(
+        "Please choose an audio file."
+      );
+
+      return;
+    }
+
+
+    if (
+      !options.programme.trim()
+    ) {
+
+      alert(
+        "Please enter a programme name."
+      );
+
+      return;
+    }
+
+
+    if (
+      options.season < 1
+    ) {
+
+      alert(
+        "Season must be 1 or greater."
+      );
+
+      return;
+    }
+
+
+    if (
+      options.split_audio &&
+      options.split_minutes <= 0
+    ) {
+
+      alert(
+        "Episode length must be greater than zero."
+      );
+
+      return;
+    }
+
 
     try {
 
-      const job = await getJob(jobId);
+      setUploading(true);
 
-      setStatus(job.status);
+      setStatus(
+        "Uploading..."
+      );
 
-      setProgress(job.progress);
+      setProgress(0);
 
-      if (
 
-        job.status === "Completed" ||
+      const form =
+        new FormData();
 
-        job.progress >= 100
 
-      ) {
+      // ======================================================
+      // SOURCE AUDIO
+      // ======================================================
 
-        setUploading(false);
+      form.append(
+        "file",
+        file
+      );
 
-        if (pollRef.current)
 
-          clearInterval(pollRef.current);
+      // ======================================================
+      // MODE
+      // ======================================================
 
+      form.append(
+        "mode",
+        "podcast"
+      );
+
+
+      // ======================================================
+      // AUDIO
+      // ======================================================
+
+      form.append(
+        "enhance_audio",
+        String(
+          options.enhance_audio
+        )
+      );
+
+
+      form.append(
+        "normalize_audio",
+        String(
+          options.normalize_audio
+        )
+      );
+
+
+      // ======================================================
+      // AI
+      // ======================================================
+
+      form.append(
+        "transcribe",
+        String(
+          options.transcribe
+        )
+      );
+
+
+      form.append(
+        "summarize",
+        String(
+          options.summarize
+        )
+      );
+
+
+      form.append(
+        "keywords",
+        String(
+          options.keywords
+        )
+      );
+
+
+      form.append(
+        "topics",
+        String(
+          options.topics
+        )
+      );
+
+
+      form.append(
+        "chapters",
+        String(
+          options.chapters
+        )
+      );
+
+
+      form.append(
+        "speaker_identification",
+        String(
+          options.speaker_identification
+        )
+      );
+
+
+      // ======================================================
+      // SPLITTING
+      // ======================================================
+
+      form.append(
+        "split_audio",
+        String(
+          options.split_audio
+        )
+      );
+
+
+      form.append(
+        "split_method",
+        options.split_method
+      );
+
+
+      form.append(
+        "split_minutes",
+        String(
+          options.split_minutes
+        )
+      );
+
+
+      // ======================================================
+      // PUBLISHING
+      // ======================================================
+
+      form.append(
+        "publish_to",
+        options.publish_to
+      );
+
+
+      // ======================================================
+      // PROGRAMME
+      // ======================================================
+
+      form.append(
+        "programme",
+        options.programme.trim()
+      );
+
+
+      // ======================================================
+      // SEASON
+      // ======================================================
+
+      form.append(
+        "season",
+        String(
+          options.season
+        )
+      );
+
+
+      // ======================================================
+      // AUDIO PRESERVATION
+      // ======================================================
+
+      form.append(
+        "preserve_audio",
+        "true"
+      );
+
+
+      console.log(
+        "MCAIE PROCESSING CONFIGURATION",
+        {
+          ...options,
+        }
+      );
+
+
+      const response =
+        await fetch(
+          `${API}/upload`,
+          {
+            method: "POST",
+            body: form,
+          }
+        );
+
+
+      if (!response.ok) {
+
+        const message =
+          await response.text();
+
+        throw new Error(
+          message ||
+          "Upload failed."
+        );
       }
 
-    } catch (err) {
 
-      console.error(err);
+      const data =
+        await response.json();
 
+
+      console.log(
+        "MCAIE JOB CREATED",
+        data
+      );
+
+
+      setJobId(
+        data.job_id
+      );
+
+
+      setStatus(
+        "Processing..."
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        "Upload failed:",
+        error
+      );
+
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Upload failed."
+      );
+
+
+      setUploading(false);
+
+      setStatus(
+        "Upload failed"
+      );
     }
-
-  }, 1000);
-
-  return () => {
-
-    if (pollRef.current)
-
-      clearInterval(pollRef.current);
-
-  };
-
-}, [jobId]);
-
-async function runAI() {
-
-  if (!file) {
-    alert("Please choose an audio file.");
-    return;
   }
 
-  try {
 
-    setUploading(true);
-
-    const form = new FormData();
-
-    form.append("file", file);
-
-    form.append("mode", "podcast");
-
-    form.append("enhance_audio", "true");
-
-    form.append("normalize_audio", "true");
-
-    form.append("transcribe", "true");
-
-    form.append("summarize", "true");
-
-    form.append("keywords", "true");
-
-    form.append("topics", "true");
-
-    form.append("chapters", "true");
-
-    form.append("speaker_identification", "true");
-
-    form.append("split_audio", String(splitAudio));
-
-    form.append("split_method", "ai");
-
-    form.append("split_minutes", "20");
-
-    form.append("publish_to", "download");
-
-    const data = await uploadAudio(file, {
-  mode: "podcast",
-  enhance_audio: true,
-  normalize_audio: true,
-  transcribe: true,
-  summarize: true,
-  keywords: true,
-  topics: true,
-  chapters: true,
-  speaker_identification: true,
-  split_audio: splitAudio,
-  split_method: "ai",
-  split_minutes: 20,
-  publish_to: "download",
-});
-
-setJobId(data.job_id);
-
-  } catch (e) {
-
-    console.error(e);
-
-    alert("Upload failed.");
-
-    setUploading(false);
-
-  }
-
-}
+  // ==========================================================
+  // RENDER
+  // ==========================================================
 
   return (
+
     <main
       style={{
-        minHeight: "100vh",
-        background: "#F6F1E8",
-        padding: 40,
+        minHeight:
+          "100vh",
+
+        background:
+          "#F6F1E8",
+
+        padding:
+          "40px 20px",
       }}
     >
+
       <div
         style={{
-          maxWidth: 1200,
-          margin: "0 auto",
+          maxWidth:
+            1200,
+
+          margin:
+            "0 auto",
         }}
       >
+
         <h1
           style={{
-            color: "#153848",
-            fontSize: 42,
-            marginBottom: 10,
+            color:
+              "#153848",
+
+            fontSize:
+              42,
+
+            marginBottom:
+              10,
           }}
         >
           Studio
         </h1>
 
+
         <p
           style={{
-            color: "#666",
-            marginBottom: 40,
-            fontSize: 18,
+            color:
+              "#666",
+
+            marginBottom:
+              40,
+
+            fontSize:
+              18,
           }}
         >
-          Process, enhance and publish conversations using the FONS AI Engine.
+          Configure exactly what MCAIE should
+          do with your recording.
         </p>
 
-        {/* Upload */}
 
-        <div
+        {/* ==================================================
+            UPLOAD
+        ================================================== */}
+
+        <section
           style={{
-            background: "#fff",
-            borderRadius: 24,
-            padding: 40,
-            marginBottom: 30,
-            border: "2px dashed #B48A45",
-            textAlign: "center",
+            background:
+              "#FFFFFF",
+
+            borderRadius:
+              24,
+
+            padding:
+              40,
+
+            marginBottom:
+              30,
+
+            border:
+              "2px dashed #B48A45",
+
+            textAlign:
+              "center",
           }}
         >
+
           <h2
             style={{
-              color: "#153848",
-              marginBottom: 10,
+              color:
+                "#153848",
+
+              marginBottom:
+                10,
             }}
           >
             Upload Audio
           </h2>
 
+
           <p
             style={{
-              color: "#777",
-              marginBottom: 25,
+              color:
+                "#777",
+
+              marginBottom:
+                25,
             }}
           >
-            Drag & Drop or choose an audio file.
+            Choose the recording you want MCAIE
+            to process.
           </p>
 
+
           <input
-  type="file"
-  accept="audio/*"
-  onChange={(e) => {
-    if (e.target.files?.length) {
-      setFile(e.target.files[0]);
-    }
-  }}
-/>
+            type="file"
+            accept="audio/*"
+            onChange={event => {
 
-{file && (
-  <p
-    style={{
-      marginTop: 15,
-      color: "#153848",
-      fontWeight: 700,
-    }}
-  >
-    {file.name}
-  </p>
-)}
-        </div>
+              const selected =
+                event.target.files?.[0];
 
-        {/* Processing */}
 
-        <div
+              if (selected) {
+
+                setFile(
+                  selected
+                );
+              }
+            }}
+          />
+
+
+          {file && (
+
+            <p
+              style={{
+                marginTop:
+                  15,
+
+                color:
+                  "#153848",
+
+                fontWeight:
+                  700,
+              }}
+            >
+              {file.name}
+            </p>
+          )}
+
+        </section>
+
+
+        {/* ==================================================
+            PUBLISHING CONTEXT
+        ================================================== */}
+
+        <section
           style={{
-            background: "#fff",
-            borderRadius: 24,
-            padding: 35,
-            marginBottom: 30,
+            background:
+              "#FFFFFF",
+
+            borderRadius:
+              24,
+
+            padding:
+              35,
+
+            marginBottom:
+              30,
           }}
         >
+
           <h2
             style={{
-              color: "#153848",
-              marginBottom: 25,
+              color:
+                "#153848",
+
+              marginBottom:
+                10,
+            }}
+          >
+            Programme & Season
+          </h2>
+
+
+          <p
+            style={{
+              color:
+                "#777",
+
+              marginBottom:
+                25,
+            }}
+          >
+            Tell FONS exactly where this recording
+            belongs. New episodes will continue from
+            the last published episode in this season.
+          </p>
+
+
+          <div
+            style={{
+              display:
+                "grid",
+
+              gridTemplateColumns:
+                "minmax(0, 1fr) 180px",
+
+              gap:
+                20,
+            }}
+          >
+
+            <div>
+
+              <label
+                style={{
+                  display:
+                    "block",
+
+                  fontWeight:
+                    700,
+
+                  color:
+                    "#153848",
+
+                  marginBottom:
+                    8,
+                }}
+              >
+                Programme
+              </label>
+
+
+              <input
+                type="text"
+                value={
+                  options.programme
+                }
+                onChange={event =>
+                  setOption(
+                    "programme",
+                    event.target.value
+                  )
+                }
+                placeholder="e.g. You Rise Surrounded"
+                style={{
+                  width:
+                    "100%",
+
+                  padding:
+                    14,
+
+                  border:
+                    "1px solid #DDD",
+
+                  borderRadius:
+                    10,
+
+                  fontSize:
+                    16,
+
+                  boxSizing:
+                    "border-box",
+                }}
+              />
+
+            </div>
+
+
+            <div>
+
+              <label
+                style={{
+                  display:
+                    "block",
+
+                  fontWeight:
+                    700,
+
+                  color:
+                    "#153848",
+
+                  marginBottom:
+                    8,
+                }}
+              >
+                Season
+              </label>
+
+
+              <input
+                type="number"
+                min="1"
+                value={
+                  options.season
+                }
+                onChange={event =>
+                  setOption(
+                    "season",
+                    Math.max(
+                      1,
+                      Number(
+                        event.target.value
+                      )
+                    )
+                  )
+                }
+                style={{
+                  width:
+                    "100%",
+
+                  padding:
+                    14,
+
+                  border:
+                    "1px solid #DDD",
+
+                  borderRadius:
+                    10,
+
+                  fontSize:
+                    16,
+
+                  boxSizing:
+                    "border-box",
+                }}
+              />
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        {/* ==================================================
+            AUDIO PROCESSING
+        ================================================== */}
+
+        <section
+          style={{
+            background:
+              "#FFFFFF",
+
+            borderRadius:
+              24,
+
+            padding:
+              35,
+
+            marginBottom:
+              30,
+          }}
+        >
+
+          <h2
+            style={{
+              color:
+                "#153848",
+
+              marginBottom:
+                25,
+            }}
+          >
+            Audio Processing
+          </h2>
+
+
+          <Option
+            label="Audio Enhancement"
+            checked={
+              options.enhance_audio
+            }
+            onChange={
+              value =>
+                setOption(
+                  "enhance_audio",
+                  value
+                )
+            }
+          />
+
+
+          <Option
+            label="Normalize Audio"
+            checked={
+              options.normalize_audio
+            }
+            onChange={
+              value =>
+                setOption(
+                  "normalize_audio",
+                  value
+                )
+            }
+          />
+
+        </section>
+
+
+        {/* ==================================================
+            AI PROCESSING
+        ================================================== */}
+
+        <section
+          style={{
+            background:
+              "#FFFFFF",
+
+            borderRadius:
+              24,
+
+            padding:
+              35,
+
+            marginBottom:
+              30,
+          }}
+        >
+
+          <h2
+            style={{
+              color:
+                "#153848",
+
+              marginBottom:
+              25,
             }}
           >
             AI Processing
           </h2>
 
-          <Option text="Audio Enhancement" defaultChecked />
-          <Option text="Noise Reduction" defaultChecked />
-          <Option text="Normalize Audio" defaultChecked />
-          <Option text="Speaker Identification" defaultChecked />
-          <Option text="Transcript" defaultChecked />
-          <Option text="AI Summary" defaultChecked />
-          <Option text="Keywords" defaultChecked />
-          <Option text="Chapters" defaultChecked />
 
-          <div style={{ marginTop: 18 }}>
-            <label
-              style={{
-                display: "flex",
-                gap: 12,
-                alignItems: "center",
-                fontWeight: 600,
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={splitAudio}
-                onChange={(e) =>
-                  setSplitAudio(e.target.checked)
-                }
-              />
+          <Option
+            label="Transcription"
+            checked={
+              options.transcribe
+            }
+            onChange={
+              value =>
+                setOption(
+                  "transcribe",
+                  value
+                )
+            }
+          />
 
-              Episode Split
-            </label>
-          </div>
 
-          {splitAudio && (
+          <Option
+            label="AI Summary"
+            checked={
+              options.summarize
+            }
+            onChange={
+              value =>
+                setOption(
+                  "summarize",
+                  value
+                )
+            }
+          />
+
+
+          <Option
+            label="Keywords"
+            checked={
+              options.keywords
+            }
+            onChange={
+              value =>
+                setOption(
+                  "keywords",
+                  value
+                )
+            }
+          />
+
+
+          <Option
+            label="Topics"
+            checked={
+              options.topics
+            }
+            onChange={
+              value =>
+                setOption(
+                  "topics",
+                  value
+                )
+            }
+          />
+
+
+          <Option
+            label="Chapters"
+            checked={
+              options.chapters
+            }
+            onChange={
+              value =>
+                setOption(
+                  "chapters",
+                  value
+                )
+            }
+          />
+
+
+          <Option
+            label="Speaker Identification"
+            checked={
+              options.speaker_identification
+            }
+            onChange={
+              value =>
+                setOption(
+                  "speaker_identification",
+                  value
+                )
+            }
+          />
+
+        </section>
+
+
+        {/* ==================================================
+            SPLITTING
+        ================================================== */}
+
+        <section
+          style={{
+            background:
+              "#FFFFFF",
+
+            borderRadius:
+              24,
+
+            padding:
+              35,
+
+            marginBottom:
+              30,
+          }}
+        >
+
+          <h2
+            style={{
+              color:
+                "#153848",
+            }}
+          >
+            Episode Splitting
+          </h2>
+
+
+          <Option
+            label="Split Audio Into Episodes"
+            checked={
+              options.split_audio
+            }
+            onChange={
+              value =>
+                setOption(
+                  "split_audio",
+                  value
+                )
+            }
+          />
+
+
+          {options.split_audio && (
+
             <div
               style={{
-                marginTop: 25,
-                padding: 20,
-                background: "#F8F8F8",
-                borderRadius: 16,
+                marginTop:
+                  25,
+
+                padding:
+                  25,
+
+                background:
+                  "#F8F8F8",
+
+                borderRadius:
+                  16,
               }}
             >
+
               <h3
                 style={{
-                  color: "#153848",
+                  color:
+                    "#153848",
+
+                  marginTop:
+                    0,
                 }}
               >
-                Split Options
+                Split Method
               </h3>
 
-              <div style={{ marginTop: 15 }}>
-                <label>
-                  <input
-                    type="radio"
-                    name="split"
-                    defaultChecked
-                  />{" "}
-                  AI Automatic
-                </label>
-              </div>
 
-              <div style={{ marginTop: 10 }}>
-                <label>
-                  <input
-                    type="radio"
-                    name="split"
-                  />{" "}
-                  Fixed Length
-                </label>
-              </div>
+              <label
+                style={{
+                  display:
+                    "flex",
+
+                  gap:
+                    10,
+
+                  alignItems:
+                    "center",
+
+                  marginBottom:
+                    15,
+                }}
+              >
+
+                <input
+                  type="radio"
+                  name="split-method"
+                  checked={
+                    options.split_method ===
+                    "fixed"
+                  }
+                  onChange={() =>
+                    setOption(
+                      "split_method",
+                      "fixed"
+                    )
+                  }
+                />
+
+                Fixed Length
+
+              </label>
+
+
+              <label
+                style={{
+                  display:
+                    "flex",
+
+                  gap:
+                    10,
+
+                  alignItems:
+                    "center",
+                }}
+              >
+
+                <input
+                  type="radio"
+                  name="split-method"
+                  checked={
+                    options.split_method ===
+                    "ai"
+                  }
+                  onChange={() =>
+                    setOption(
+                      "split_method",
+                      "ai"
+                    )
+                  }
+                />
+
+                AI Automatic
+
+              </label>
+
 
               <div
                 style={{
-                  marginTop: 18,
+                  marginTop:
+                    25,
                 }}
               >
-                Length
 
-                <br />
+                <label
+                  style={{
+                    display:
+                      "block",
+
+                    fontWeight:
+                      600,
+                  }}
+                >
+                  Episode Length
+                </label>
+
 
                 <input
-                  defaultValue="20"
+                  type="number"
+                  min="1"
+                  value={
+                    options.split_minutes
+                  }
+                  onChange={event =>
+                    setOption(
+                      "split_minutes",
+                      Number(
+                        event.target.value
+                      )
+                    )
+                  }
                   style={{
-                    width: 100,
-                    marginTop: 10,
-                    padding: 10,
+                    width:
+                      120,
+
+                    padding:
+                      12,
+
+                    marginTop:
+                      8,
+
+                    border:
+                      "1px solid #DDD",
+
+                    borderRadius:
+                      10,
                   }}
                 />
 
-                {" "}minutes
+
+                <span
+                  style={{
+                    marginLeft:
+                      10,
+                  }}
+                >
+                  minutes
+                </span>
+
               </div>
+
             </div>
           )}
-        </div>
 
-        {/* Destination */}
+        </section>
 
-        <div
+
+        {/* ==================================================
+            PUBLISHING
+        ================================================== */}
+
+        <section
           style={{
-            background: "#fff",
-            borderRadius: 24,
-            padding: 35,
-            marginBottom: 30,
+            background:
+              "#FFFFFF",
+
+            borderRadius:
+              24,
+
+            padding:
+              35,
+
+            marginBottom:
+              30,
           }}
         >
+
           <h2
             style={{
-              color: "#153848",
+              color:
+                "#153848",
             }}
           >
             Publish Destination
           </h2>
 
-          <div style={{ marginTop: 20 }}>
 
-            <Radio text="Download Only" />
+          <label
+            style={{
+              display:
+                "flex",
 
-            <Radio
-              text="Kyamagero Daily"
-              checked
+              gap:
+                10,
+
+              alignItems:
+                "center",
+
+              marginTop:
+                20,
+
+              marginBottom:
+                15,
+            }}
+          >
+
+            <input
+              type="radio"
+              name="destination"
+              checked={
+                options.publish_to ===
+                "download"
+              }
+              onChange={() =>
+                setOption(
+                  "publish_to",
+                  "download"
+                )
+              }
             />
 
-            <Radio text="Man Cave UG" />
+            Download Only
 
-          </div>
-        </div>
+          </label>
 
-        {/* Progress */}
 
-        <div
+          <label
+            style={{
+              display:
+                "flex",
+
+              gap:
+                10,
+
+              alignItems:
+                "center",
+
+              marginBottom:
+                15,
+            }}
+          >
+
+            <input
+              type="radio"
+              name="destination"
+              checked={
+                options.publish_to ===
+                "kyamagero-daily"
+              }
+              onChange={() =>
+                setOption(
+                  "publish_to",
+                  "kyamagero-daily"
+                )
+              }
+            />
+
+            Kyamagero Daily
+
+          </label>
+
+
+          <label
+            style={{
+              display:
+                "flex",
+
+              gap:
+                10,
+
+              alignItems:
+                "center",
+            }}
+          >
+
+            <input
+              type="radio"
+              name="destination"
+              checked={
+                options.publish_to ===
+                "man-cave-ug"
+              }
+              onChange={() =>
+                setOption(
+                  "publish_to",
+                  "man-cave-ug"
+                )
+              }
+            />
+
+            Man Cave UG
+
+          </label>
+
+        </section>
+
+
+        {/* ==================================================
+            STATUS
+        ================================================== */}
+
+        <section
           style={{
-            background: "#fff",
-            borderRadius: 24,
-            padding: 35,
-            marginBottom: 30,
+            background:
+              "#FFFFFF",
+
+            borderRadius:
+              24,
+
+            padding:
+              35,
+
+            marginBottom:
+              30,
           }}
         >
+
           <h2
             style={{
-              color: "#153848",
-              marginBottom: 20,
+              color:
+                "#153848",
+
+              marginBottom:
+                20,
             }}
           >
             Processing Status
           </h2>
 
-          <Status
-  name="Current Status"
-  value={status}
-/>
 
-<Status
-  name="Progress"
-  value={`${progress}%`}
-/>
-        </div>
+          <Status
+            name="Current Status"
+            value={
+              status
+            }
+          />
+
+
+          <Status
+            name="Progress"
+            value={
+              `${progress}%`
+            }
+          />
+
+        </section>
+
+
+        {/* ==================================================
+            RUN
+        ================================================== */}
 
         <button
-  onClick={runAI}
-  disabled={uploading}
-  style={{
-    width: "100%",
-    padding: 22,
-    border: "none",
-    borderRadius: 999,
-    background: "#153848",
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: 700,
-    cursor: "pointer",
-    opacity: uploading ? 0.7 : 1,
-  }}
->
-  {uploading
-    ? `Processing ${progress}%`
-    : "Run AI Processing"}
-</button>
+          onClick={
+            runProcessing
+          }
+          disabled={
+            uploading
+          }
+          style={{
+            width:
+              "100%",
+
+            padding:
+              22,
+
+            border:
+              "none",
+
+            borderRadius:
+              999,
+
+            background:
+              "#153848",
+
+            color:
+              "#FFFFFF",
+
+            fontSize:
+              18,
+
+            fontWeight:
+              700,
+
+            cursor:
+              uploading
+                ? "default"
+                : "pointer",
+
+            opacity:
+              uploading
+                ? 0.7
+                : 1,
+          }}
+        >
+
+          {uploading
+            ? `Processing ${progress}%`
+            : "Run Processing"}
+
+        </button>
+
       </div>
+
     </main>
   );
 }
 
+
+// ============================================================
+// OPTION
+// ============================================================
+
 function Option({
-  text,
-  defaultChecked = false,
+  label,
+  checked,
+  onChange,
 }: {
-  text: string;
-  defaultChecked?: boolean;
+  label: string;
+  checked: boolean;
+  onChange: (
+    value: boolean
+  ) => void;
 }) {
+
   return (
-    <div style={{ marginBottom: 16 }}>
+
+    <div
+      style={{
+        marginBottom:
+          16,
+      }}
+    >
+
       <label
         style={{
-          display: "flex",
-          gap: 12,
-          alignItems: "center",
-          fontWeight: 600,
+          display:
+            "flex",
+
+          gap:
+            12,
+
+          alignItems:
+            "center",
+
+          fontWeight:
+            600,
+
+          cursor:
+            "pointer",
         }}
       >
+
         <input
           type="checkbox"
-          defaultChecked={defaultChecked}
+          checked={
+            checked
+          }
+          onChange={event =>
+            onChange(
+              event.target.checked
+            )
+          }
         />
 
-        {text}
+        {label}
+
       </label>
+
     </div>
   );
 }
 
-function Radio({
-  text,
-  checked = false,
-}: {
-  text: string;
-  checked?: boolean;
-}) {
-  return (
-    <div style={{ marginBottom: 15 }}>
-      <label>
-        <input
-          type="radio"
-          name="destination"
-          defaultChecked={checked}
-        />{" "}
-        {text}
-      </label>
-    </div>
-  );
-}
+
+// ============================================================
+// STATUS
+// ============================================================
 
 function Status({
   name,
-  value = "Waiting...",
+  value,
 }: {
   name: string;
-  value?: string;
+  value: string;
 }) {
+
   return (
+
     <div
       style={{
-        display: "flex",
-        justifyContent: "space-between",
-        padding: "14px 0",
-        borderBottom: "1px solid #EEE",
+        display:
+          "flex",
+
+        justifyContent:
+          "space-between",
+
+        padding:
+          "14px 0",
+
+        borderBottom:
+          "1px solid #EEE",
       }}
     >
-      <strong>{name}</strong>
+
+      <strong>
+        {name}
+      </strong>
+
 
       <span
-  style={{
-    color:
-      value === "Completed"
-        ? "green"
-        : "#888",
-    fontWeight: 600,
-  }}
->
-  {value}
-</span>
+        style={{
+          color:
+            value ===
+            "Completed"
+              ? "#1E8E5A"
+              : "#888",
+
+          fontWeight:
+            600,
+        }}
+      >
+        {value}
+      </span>
+
     </div>
   );
 }
