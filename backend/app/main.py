@@ -19,48 +19,74 @@ from app.api.websocket import router as websocket_router
 # Authentication temporarily disabled
 # from app.api.auth import router as auth_router
 
+
 app = FastAPI(
     title="FONS API",
     description="FONS Conversation Intelligence & Publishing Platform powered by MCAIE",
     version="3.0.0",
 )
 
+
+# ==========================================================
+# CORS
+# ==========================================================
+
 app.add_middleware(
     CORSMiddleware,
+
     allow_origins=[
+        # Local development
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+
+        # Northflank production frontend
+        "https://p01--mcaie-web--k2vfhz79t8sy.code.run",
     ],
+
     allow_credentials=True,
+
     allow_methods=["*"],
+
     allow_headers=["*"],
 )
+
 
 # ==========================================================
 # Upload & Production
 # ==========================================================
 
 app.include_router(upload_router)
+
 app.include_router(studio_router)
+
 app.include_router(jobs_router)
+
 
 # ==========================================================
 # Library, Shows & Playback
 # ==========================================================
 
 app.include_router(library_router)
+
 app.include_router(episodes_router)
+
 app.include_router(playback_router)
+
 app.include_router(shows_router)
+
 app.include_router(audio_router)
+
 
 # ==========================================================
 # Discovery
 # ==========================================================
 
 app.include_router(search_router)
+
 app.include_router(analytics_router)
+
 app.include_router(dashboard_router)
+
 
 # ==========================================================
 # Creator Workspace
@@ -68,16 +94,23 @@ app.include_router(dashboard_router)
 
 app.include_router(projects_router)
 
+
 # ==========================================================
 # Live Conversations
 # ==========================================================
 
 app.include_router(sessions_router)
+
 app.include_router(websocket_router)
 
 
+# ==========================================================
+# ROOT
+# ==========================================================
+
 @app.get("/")
 async def root():
+
     return {
         "application": "FONS",
         "engine": "MCAIE",
@@ -86,8 +119,13 @@ async def root():
     }
 
 
+# ==========================================================
+# HEALTH
+# ==========================================================
+
 @app.get("/health")
 async def health():
+
     return {
         "status": "healthy",
         "application": "FONS",
