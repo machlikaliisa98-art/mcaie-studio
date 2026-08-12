@@ -3,108 +3,267 @@ import os
 
 from dotenv import load_dotenv
 
+
 load_dotenv()
 
-#
-# Project Root
-#
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+# ==========================================================
+# PROJECT ROOT
+# ==========================================================
 
-#
-# MCAIE Storage
-#
-# Runtime data is stored on D:
-# to avoid filling the Windows drive.
-#
+BASE_DIR = (
+    Path(__file__)
+    .resolve()
+    .parent
+    .parent
+)
 
-STORAGE = Path(r"D:\MCAIE")
 
+# ==========================================================
+# MCAIE STORAGE
+# ==========================================================
 #
-# Audio Storage
+# IMPORTANT:
 #
+# Storage is environment-driven.
+#
+# LOCAL DEVELOPMENT:
+#
+#     STORAGE_PATH=D:\MCAIE
+#
+# NORTHFLANK:
+#
+#     STORAGE_PATH=/data/mcaie
+#
+# This means the application NEVER depends on
+# a hard-coded Windows drive in production.
+# ==========================================================
 
-UPLOADS = STORAGE / "uploads"
-TEMP = STORAGE / "temp"
-EPISODES = STORAGE / "episodes"
-PROCESSED = STORAGE / "processed"
-OUTPUTS = STORAGE / "outputs"
+STORAGE_ENV = os.getenv(
+    "STORAGE_PATH"
+)
 
-#
-# AI Platform Storage
-#
 
-PROJECTS = STORAGE / "projects"
-TRANSCRIPTS = STORAGE / "transcripts"
-SUMMARIES = STORAGE / "summaries"
-CHAPTERS = STORAGE / "chapters"
-HIGHLIGHTS = STORAGE / "highlights"
-KEYWORDS = STORAGE / "keywords"
-SEARCH = STORAGE / "search"
-ANALYTICS = STORAGE / "analytics"
-RECOMMENDATIONS = STORAGE / "recommendations"
-LIVE = STORAGE / "live"
+if STORAGE_ENV:
 
-#
-# System
-#
+    STORAGE = Path(
+        STORAGE_ENV
+    ).expanduser()
 
-REPORTS = STORAGE / "reports"
-LOGS = STORAGE / "logs"
+else:
 
-#
-# Create directories
-#
+    # Local Windows development fallback.
+    #
+    # This preserves the existing local
+    # D:\MCAIE workflow.
 
-for folder in (
+    if os.name == "nt":
+
+        STORAGE = Path(
+            r"D:\MCAIE"
+        )
+
+    else:
+
+        # Safe Linux fallback.
+        #
+        # Northflank production should
+        # explicitly provide STORAGE_PATH.
+
+        STORAGE = Path(
+            "/data/mcaie"
+        )
+
+
+# ==========================================================
+# AUDIO STORAGE
+# ==========================================================
+
+UPLOADS = (
+    STORAGE /
+    "uploads"
+)
+
+TEMP = (
+    STORAGE /
+    "temp"
+)
+
+EPISODES = (
+    STORAGE /
+    "episodes"
+)
+
+PROCESSED = (
+    STORAGE /
+    "processed"
+)
+
+OUTPUTS = (
+    STORAGE /
+    "outputs"
+)
+
+
+# ==========================================================
+# AI PLATFORM STORAGE
+# ==========================================================
+
+PROJECTS = (
+    STORAGE /
+    "projects"
+)
+
+TRANSCRIPTS = (
+    STORAGE /
+    "transcripts"
+)
+
+SUMMARIES = (
+    STORAGE /
+    "summaries"
+)
+
+CHAPTERS = (
+    STORAGE /
+    "chapters"
+)
+
+HIGHLIGHTS = (
+    STORAGE /
+    "highlights"
+)
+
+KEYWORDS = (
+    STORAGE /
+    "keywords"
+)
+
+SEARCH = (
+    STORAGE /
+    "search"
+)
+
+ANALYTICS = (
+    STORAGE /
+    "analytics"
+)
+
+RECOMMENDATIONS = (
+    STORAGE /
+    "recommendations"
+)
+
+LIVE = (
+    STORAGE /
+    "live"
+)
+
+
+# ==========================================================
+# SYSTEM
+# ==========================================================
+
+REPORTS = (
+    STORAGE /
+    "reports"
+)
+
+LOGS = (
+    STORAGE /
+    "logs"
+)
+
+
+# ==========================================================
+# CREATE DIRECTORIES
+# ==========================================================
+
+DIRECTORIES = (
 
     STORAGE,
 
     UPLOADS,
+
     TEMP,
+
     EPISODES,
+
     PROCESSED,
+
     OUTPUTS,
 
     PROJECTS,
+
     TRANSCRIPTS,
+
     SUMMARIES,
+
     CHAPTERS,
+
     HIGHLIGHTS,
+
     KEYWORDS,
+
     SEARCH,
+
     ANALYTICS,
+
     RECOMMENDATIONS,
+
     LIVE,
 
     REPORTS,
+
     LOGS,
 
-):
+)
+
+
+for folder in DIRECTORIES:
+
     folder.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-#
-# External binaries
-#
 
-FFMPEG = os.getenv("FFMPEG", "ffmpeg")
-FFPROBE = os.getenv("FFPROBE", "ffprobe")
+# ==========================================================
+# EXTERNAL BINARIES
+# ==========================================================
 
-#
-# MCAIE Audio Configuration
-#
+FFMPEG = os.getenv(
+    "FFMPEG",
+    "ffmpeg",
+)
+
+FFPROBE = os.getenv(
+    "FFPROBE",
+    "ffprobe",
+)
+
+
+# ==========================================================
+# MCAIE AUDIO CONFIGURATION
+# ==========================================================
 
 SAMPLE_RATE = 48000
+
 CHANNELS = 1
-PCM_FORMAT = "pcm_s16le"
 
-#
-# Platform
-#
+PCM_FORMAT = (
+    "pcm_s16le"
+)
 
-APP_NAME = "Man Cave UG AI Studio"
+
+# ==========================================================
+# PLATFORM
+# ==========================================================
+
+APP_NAME = (
+    "Man Cave UG AI Studio"
+)
+
 ENGINE_NAME = "MCAIE"
+
 VERSION = "2.1.0"
