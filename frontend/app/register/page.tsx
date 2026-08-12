@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { API_URL } from "@/config/api";
 
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
@@ -35,9 +36,8 @@ export default function RegisterPage() {
     setMessage("");
 
     try {
-      // Backend endpoint (we'll build this next)
       const response = await fetch(
-        "http://127.0.0.1:8000/auth/register",
+        `${API_URL}/auth/register`,
         {
           method: "POST",
           headers: {
@@ -54,11 +54,15 @@ export default function RegisterPage() {
         }
       );
 
-      if (!response.ok) {
-        throw new Error("Registration failed.");
-      }
+      const data = await response.json().catch(() => null);
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          data?.detail ||
+            data?.message ||
+            "Registration failed."
+        );
+      }
 
       console.log(data);
 
@@ -72,16 +76,19 @@ export default function RegisterPage() {
         country: "",
         category: "Podcaster",
       });
-
     } catch (err) {
       console.error(err);
 
-      setMessage(
-        "Backend not connected yet. Registration endpoint will be implemented next."
-      );
+      if (err instanceof Error) {
+        setMessage(err.message);
+      } else {
+        setMessage(
+          "Unable to connect to the backend."
+        );
+      }
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   return (
@@ -110,6 +117,7 @@ export default function RegisterPage() {
             background: "#FFFFFF",
             borderRadius: 34,
             padding: 42,
+            boxSizing: "border-box",
           }}
         >
           <h2
@@ -128,21 +136,26 @@ export default function RegisterPage() {
               marginBottom: 30,
             }}
           >
-            Join FONS and begin preserving conversations that matter.
+            Join FONS and begin preserving
+            conversations that matter.
           </p>
 
           <Input
             label="Full Name"
             value={form.fullName}
             placeholder="John Doe"
-            onChange={(v) => update("fullName", v)}
+            onChange={(v) =>
+              update("fullName", v)
+            }
           />
 
           <Input
             label="Username"
             value={form.username}
             placeholder="@username"
-            onChange={(v) => update("username", v)}
+            onChange={(v) =>
+              update("username", v)
+            }
           />
 
           <Input
@@ -150,7 +163,9 @@ export default function RegisterPage() {
             value={form.email}
             placeholder="you@example.com"
             type="email"
-            onChange={(v) => update("email", v)}
+            onChange={(v) =>
+              update("email", v)
+            }
           />
 
           <Input
@@ -158,14 +173,18 @@ export default function RegisterPage() {
             value={form.password}
             type="password"
             placeholder="Password"
-            onChange={(v) => update("password", v)}
+            onChange={(v) =>
+              update("password", v)
+            }
           />
 
           <Input
             label="Country"
             value={form.country}
             placeholder="Country"
-            onChange={(v) => update("country", v)}
+            onChange={(v) =>
+              update("country", v)
+            }
           />
 
           <div style={{ marginBottom: 22 }}>
@@ -181,7 +200,10 @@ export default function RegisterPage() {
             <select
               value={form.category}
               onChange={(e) =>
-                update("category", e.target.value)
+                update(
+                  "category",
+                  e.target.value
+                )
               }
               style={inputStyle}
             >
@@ -245,12 +267,16 @@ export default function RegisterPage() {
             disabled={loading}
             style={{
               width: "100%",
-              background: "#153848",
+              background: loading
+                ? "#6B7F87"
+                : "#153848",
               color: "#FFFFFF",
               border: "none",
               padding: 18,
               borderRadius: 999,
-              cursor: "pointer",
+              cursor: loading
+                ? "not-allowed"
+                : "pointer",
               fontWeight: 700,
               fontSize: 16,
             }}
@@ -264,7 +290,11 @@ export default function RegisterPage() {
             <p
               style={{
                 marginTop: 18,
-                color: "#B48A45",
+                color:
+                  message ===
+                  "Account created successfully."
+                    ? "#2E7D32"
+                    : "#B48A45",
                 fontWeight: 600,
                 textAlign: "center",
               }}
@@ -359,10 +389,11 @@ export default function RegisterPage() {
             fontSize: 21,
           }}
         >
-          Whether you're a podcaster, educator, researcher,
-          business leader or storyteller, FONS preserves,
-          organizes and transforms conversations into a
-          permanent knowledge library.
+          Whether you're a podcaster, educator,
+          researcher, business leader or
+          storyteller, FONS preserves,
+          organizes and transforms conversations
+          into a permanent knowledge library.
         </p>
       </section>
     </main>
@@ -397,7 +428,9 @@ function Input({
 
       <input
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) =>
+          onChange(e.target.value)
+        }
         type={type}
         placeholder={placeholder}
         style={inputStyle}
