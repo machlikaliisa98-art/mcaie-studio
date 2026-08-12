@@ -1,7 +1,4 @@
-const API =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://site--mcaie-backend--ws6ylxkqmfw2.code.run";
-
+import { API_URL } from "@/config/api";
 
 export type UploadOptions = {
   mode: string;
@@ -23,17 +20,13 @@ export type UploadOptions = {
   publish_to: string;
 };
 
-
 export async function uploadAudio(
   file: File,
   options: UploadOptions
 ) {
   const form = new FormData();
 
-  form.append(
-    "file",
-    file
-  );
+  form.append("file", file);
 
   Object.entries(options).forEach(
     ([key, value]) => {
@@ -45,7 +38,7 @@ export async function uploadAudio(
   );
 
   const response = await fetch(
-    `${API}/upload`,
+    `${API_URL}/upload`,
     {
       method: "POST",
       body: form,
@@ -53,119 +46,108 @@ export async function uploadAudio(
   );
 
   if (!response.ok) {
-
     const message =
       await response.text();
 
     throw new Error(
       message ||
-      "Upload failed"
+        "Upload failed"
     );
   }
 
   return response.json();
 }
-
 
 export async function getJob(
   jobId: string
 ) {
   const response = await fetch(
-    `${API}/jobs/${jobId}`
+    `${API_URL}/jobs/${jobId}`
   );
 
   if (!response.ok) {
-
     const message =
       await response.text();
 
     throw new Error(
       message ||
-      "Unable to fetch job"
+        "Unable to fetch job"
     );
   }
 
   return response.json();
 }
-
 
 export async function getProject(
   projectId: string
 ) {
   const response = await fetch(
-    `${API}/projects/${projectId}`
+    `${API_URL}/projects/${projectId}`
   );
 
   if (!response.ok) {
-
     const message =
       await response.text();
 
     throw new Error(
       message ||
-      "Unable to fetch project"
+        "Unable to fetch project"
     );
   }
 
   return response.json();
 }
-
 
 export async function getLibrary() {
   const response = await fetch(
-    `${API}/library`
+    `${API_URL}/library`
   );
 
   if (!response.ok) {
-
     const message =
       await response.text();
 
     throw new Error(
       message ||
-      "Unable to load library"
+        "Unable to load library"
     );
   }
 
   return response.json();
 }
-
 
 export async function getShows() {
   const response = await fetch(
-    `${API}/shows`
+    `${API_URL}/shows`
   );
 
   if (!response.ok) {
-
     const message =
       await response.text();
 
     throw new Error(
       message ||
-      "Unable to load shows"
+        "Unable to load shows"
     );
   }
 
   return response.json();
 }
-
 
 export async function getShow(
   showId: string
 ) {
   const response = await fetch(
-    `${API}/shows/${showId}`
+    `${API_URL}/shows/${showId}`
   );
 
   if (!response.ok) {
-
     const message =
       await response.text();
 
     throw new Error(
       message ||
-      "Unable to load show"
+        "Unable to load show"
     );
   }
 
