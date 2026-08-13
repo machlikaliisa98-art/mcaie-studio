@@ -1,4 +1,4 @@
-from logging.config import fileConfig
+﻿from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import pool
@@ -9,6 +9,7 @@ from app.database.base import Base
 
 # Import all models here
 import app.models.creator  # noqa: F401
+import app.models.listener_analytics  # noqa: F401
 
 config = context.config
 
@@ -46,3 +47,4 @@ if context.is_offline_mode():
 else:
 
     run_migrations_online()
+
