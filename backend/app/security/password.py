@@ -1,18 +1,41 @@
-from passlib.context import CryptContext
-
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-)
+import bcrypt
 
 
-def hash_password(
-    password: str,
-) -> str:
+MAX_PASSWORD_BYTES = 72
+
+
+def _password_bytes(password: str) -> bytes:
     """
-    Hash a plain-text password.
+    Convert a password to UTF-8 bytes and enforce bcrypt's
+    72-byte maximum.
     """
-    return pwd_context.hash(password)
+
+    if not isinstance(password, str):
+        raise TypeError("Password must be a string.")
+
+    password_bytes = password.encode("utf-8")
+
+    if len(password_bytes) > MAX_PASSWORD_BYTES:
+        raise ValueError(
+            "Password cannot be longer than 72 bytes."
+        )
+
+    return password_bytes
+
+
+def hash_password(password: str) -> str:
+    """
+    Hash a plain-text password using bcrypt.
+    """
+
+    password_bytes = _password_bytes(password)
+
+    hashed = bcrypt.hashpw(
+        password_bytes,
+        bcrypt.gensalt(),
+    )
+
+    return hashed.decode("utf-8")
 
 
 def verify_password(
@@ -20,9 +43,26 @@ def verify_password(
     hashed_password: str,
 ) -> bool:
     """
-    Verify a password against its hash.
+    Verify a plain-text password against a bcrypt hash.
     """
-    return pwd_context.verify(
-        plain_password,
-        hashed_password,
-    )
+
+    try:
+        password_bytes = _password_bytes(
+            plain_password
+        )
+
+        hashed_bytes = hashed_password.encode(
+            "utf-8"
+        )
+
+        return bcrypt.checkpw(
+            password_bytes,
+            hashed_bytes,
+        )
+
+    except (
+        ValueError,
+        TypeError,
+        AttributeError,
+    ):
+        return False
