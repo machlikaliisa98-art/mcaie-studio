@@ -30,6 +30,11 @@ class CreatorAnalyticsService:
                 f"{datetime.now(timezone.utc).timestamp()}"
             )
 
+            safe_duration = max(
+                0.0,
+                float(duration or 0.0),
+            )
+
             session = ListenerSession(
                 session_id=session_id,
                 listener_id=listener_id,
@@ -37,7 +42,7 @@ class CreatorAnalyticsService:
                 show_id=show_id,
                 episode_id=episode_id,
                 position=0.0,
-                duration=max(0.0, duration),
+                duration=safe_duration,
             )
 
             db.add(session)
@@ -51,7 +56,7 @@ class CreatorAnalyticsService:
                     show_id=show_id,
                     episode_id=episode_id,
                     position=0.0,
-                    duration=max(0.0, duration),
+                    duration=safe_duration,
                 )
             )
 
@@ -91,10 +96,18 @@ class CreatorAnalyticsService:
             if not session:
                 return None
 
-            session.position = max(
+            safe_position = max(
                 0.0,
-                float(position),
+                float(position or 0.0),
             )
+
+            if session.duration and session.duration > 0:
+                safe_position = min(
+                    safe_position,
+                    float(session.duration),
+                )
+
+            session.position = safe_position
 
             session.last_heartbeat = datetime.now(
                 timezone.utc
@@ -139,8 +152,14 @@ class CreatorAnalyticsService:
 
             safe_position = max(
                 0.0,
-                float(position),
+                float(position or 0.0),
             )
+
+            if session.duration and session.duration > 0:
+                safe_position = min(
+                    safe_position,
+                    float(session.duration),
+                )
 
             session.position = safe_position
 
@@ -197,9 +216,13 @@ class CreatorAnalyticsService:
 
         No analytics values are fabricated.
 
-        The response is intentionally show-aware so that
-        Kyamagero Daily, Man Cave UG, and future shows
-        can use the same analytics engine.
+        Completion is considered VERIFIED only when a
+        recorded completion event reaches at least 95%
+        of the episode duration.
+
+        Raw completion events are preserved separately so
+        we can distinguish player behaviour from verified
+        listener completion.
         """
 
         db = SessionLocal()
@@ -242,10 +265,33 @@ class CreatorAnalyticsService:
                 if event.event_type == "play"
             ]
 
+            # --------------------------------------------------
+            # Raw completion events
+            # --------------------------------------------------
+
+            completion_event_count = sum(
+                event.event_type == "complete"
+                for event in events
+            )
+
+            # --------------------------------------------------
+            # Verified completions
+            #
+            # A completion is only counted when the recorded
+            # position reaches at least 95% of the duration.
+            # --------------------------------------------------
+
             completion_events = [
                 event
                 for event in events
-                if event.event_type == "complete"
+                if (
+                    event.event_type == "complete"
+                    and float(event.duration or 0.0) > 0
+                    and (
+                        float(event.position or 0.0)
+                        / float(event.duration or 1.0)
+                    ) >= 0.95
+                )
             ]
 
             download_events = [
@@ -296,15 +342,16 @@ class CreatorAnalyticsService:
                     ),
                 )
 
+                if duration > 0:
+                    position = min(
+                        position,
+                        duration,
+                    )
+
                 session_depth[
                     session.session_id
                 ] = {
-                    "position": min(
-                        position,
-                        duration
-                    )
-                    if duration > 0
-                    else position,
+                    "position": position,
                     "duration": duration,
                 }
 
@@ -337,7 +384,7 @@ class CreatorAnalyticsService:
             )
 
             # ==================================================
-            # COMPLETION RATE
+            # VERIFIED COMPLETION RATE
             # ==================================================
 
             completion_rate = (
@@ -416,7 +463,15 @@ class CreatorAnalyticsService:
                         event.listener_id
                     )
 
-                if event.event_type == "complete":
+                # Only verified completions count here.
+                if (
+                    event.event_type == "complete"
+                    and float(event.duration or 0.0) > 0
+                    and (
+                        float(event.position or 0.0)
+                        / float(event.duration or 1.0)
+                    ) >= 0.95
+                ):
                     item["completions"] += 1
 
                 if event.event_type == "download":
@@ -446,12 +501,6 @@ class CreatorAnalyticsService:
 
             # ==================================================
             # AUDIENCE LOYALTY
-            # ==================================================
-            #
-            # A listener with more than one recorded play
-            # is considered returning.
-            #
-            # This is based entirely on real listener IDs.
             # ==================================================
 
             plays_by_listener = defaultdict(int)
@@ -622,13 +671,6 @@ class CreatorAnalyticsService:
             # ==================================================
             # RETENTION / ATTENTION
             # ==================================================
-            #
-            # We calculate retention from the furthest real
-            # playback position recorded for each session.
-            #
-            # This avoids pretending we know what a listener
-            # heard when no playback position was persisted.
-            # ==================================================
 
             retention_buckets = {
                 "0": 0,
@@ -754,6 +796,7 @@ class CreatorAnalyticsService:
                         "listeners": set(),
                         "completions": 0,
                         "downloads": 0,
+                        "completion_events": 0,
                     }
 
                 item = show_data[show_id]
@@ -767,7 +810,17 @@ class CreatorAnalyticsService:
                     )
 
                 if event.event_type == "complete":
-                    item["completions"] += 1
+                    item["completion_events"] += 1
+
+                    # Verified completion.
+                    if (
+                        float(event.duration or 0.0) > 0
+                        and (
+                            float(event.position or 0.0)
+                            / float(event.duration or 1.0)
+                        ) >= 0.95
+                    ):
+                        item["completions"] += 1
 
                 if event.event_type == "download":
                     item["downloads"] += 1
@@ -798,6 +851,9 @@ class CreatorAnalyticsService:
                         "completions": item[
                             "completions"
                         ],
+                        "completion_events": item[
+                            "completion_events"
+                        ],
                         "downloads": item[
                             "downloads"
                         ],
@@ -817,7 +873,6 @@ class CreatorAnalyticsService:
 
             # ==================================================
             # EPISODE PERFORMANCE
-            # ==================================================
             #
             # IMPORTANT:
             # Key is show_id + episode_id.
@@ -858,6 +913,7 @@ class CreatorAnalyticsService:
                         "listeners": set(),
                         "completions": 0,
                         "downloads": 0,
+                        "completion_events": 0,
                     }
 
                 item = episode_data[key]
@@ -871,7 +927,17 @@ class CreatorAnalyticsService:
                     )
 
                 if event.event_type == "complete":
-                    item["completions"] += 1
+                    item["completion_events"] += 1
+
+                    # Verified completion.
+                    if (
+                        float(event.duration or 0.0) > 0
+                        and (
+                            float(event.position or 0.0)
+                            / float(event.duration or 1.0)
+                        ) >= 0.95
+                    ):
+                        item["completions"] += 1
 
                 if event.event_type == "download":
                     item["downloads"] += 1
@@ -904,6 +970,9 @@ class CreatorAnalyticsService:
                         ),
                         "completions": item[
                             "completions"
+                        ],
+                        "completion_events": item[
+                            "completion_events"
                         ],
                         "downloads": item[
                             "downloads"
@@ -950,13 +1019,6 @@ class CreatorAnalyticsService:
 
             # ==================================================
             # LISTENER JOURNEY
-            # ==================================================
-            #
-            # We only count a journey when the database has
-            # enough actual evidence.
-            #
-            # A listener who has played more than one episode
-            # has demonstrably explored the catalogue.
             # ==================================================
 
             episodes_per_listener = defaultdict(
@@ -1057,8 +1119,14 @@ class CreatorAnalyticsService:
                     download_events
                 ),
 
+                # VERIFIED COMPLETIONS
                 "completions": len(
                     completion_events
+                ),
+
+                # RAW PLAYER COMPLETION EVENTS
+                "completion_events": (
+                    completion_event_count
                 ),
 
                 "listening_seconds": (
