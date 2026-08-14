@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.analytics import router as analytics_router
+from app.api.creator_analytics import router as creator_analytics_router
 from app.api.audio import router as audio_router
 from app.api.dashboard import router as dashboard_router
 from app.api.episodes import router as episodes_router
@@ -84,6 +85,7 @@ app.include_router(audio_router)
 app.include_router(search_router)
 
 app.include_router(analytics_router)
+app.include_router(creator_analytics_router)
 
 app.include_router(dashboard_router)
 
@@ -131,3 +133,5 @@ async def health():
         "application": "FONS",
         "engine": "MCAIE",
     }
+
+
