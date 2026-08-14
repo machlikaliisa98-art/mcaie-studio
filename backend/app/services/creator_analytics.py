@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 
 from app.database.session import SessionLocal
@@ -36,7 +37,7 @@ class CreatorAnalyticsService:
                 show_id=show_id,
                 episode_id=episode_id,
                 position=0.0,
-                duration=duration,
+                duration=max(0.0, duration),
             )
 
             db.add(session)
@@ -50,7 +51,7 @@ class CreatorAnalyticsService:
                     show_id=show_id,
                     episode_id=episode_id,
                     position=0.0,
-                    duration=duration,
+                    duration=max(0.0, duration),
                 )
             )
 
@@ -90,7 +91,10 @@ class CreatorAnalyticsService:
             if not session:
                 return None
 
-            session.position = max(0.0, position)
+            session.position = max(
+                0.0,
+                float(position),
+            )
 
             session.last_heartbeat = datetime.now(
                 timezone.utc
@@ -133,7 +137,10 @@ class CreatorAnalyticsService:
             if not session:
                 return None
 
-            safe_position = max(0.0, position)
+            safe_position = max(
+                0.0,
+                float(position),
+            )
 
             session.position = safe_position
 
@@ -150,7 +157,10 @@ class CreatorAnalyticsService:
                     show_id=session.show_id,
                     episode_id=session.episode_id,
                     position=safe_position,
-                    duration=session.duration,
+                    duration=max(
+                        0.0,
+                        float(session.duration or 0.0),
+                    ),
                 )
             )
 
@@ -182,15 +192,24 @@ class CreatorAnalyticsService:
         creator_id: str,
     ):
         """
-        Return the creator's real analytics dashboard.
+        Return real creator intelligence derived entirely
+        from persisted listener events and sessions.
 
-        All metrics are derived from persisted listener events
-        and listener sessions. No values are fabricated.
+        No analytics values are fabricated.
+
+        The response is intentionally show-aware so that
+        Kyamagero Daily, Man Cave UG, and future shows
+        can use the same analytics engine.
         """
 
         db = SessionLocal()
 
         try:
+
+            # ==================================================
+            # LOAD DATA
+            # ==================================================
+
             events = (
                 db.query(ListenerEvent)
                 .filter(
@@ -213,78 +232,170 @@ class CreatorAnalyticsService:
                 .all()
             )
 
-            # --------------------------------------------------
-            # CORE TOTALS
-            # --------------------------------------------------
+            # ==================================================
+            # CORE EVENT GROUPS
+            # ==================================================
 
             play_events = [
-                e for e in events
-                if e.event_type == "play"
+                event
+                for event in events
+                if event.event_type == "play"
             ]
 
             completion_events = [
-                e for e in events
-                if e.event_type == "complete"
+                event
+                for event in events
+                if event.event_type == "complete"
             ]
 
             download_events = [
-                e for e in events
-                if e.event_type == "download"
+                event
+                for event in events
+                if event.event_type == "download"
             ]
 
+            # ==================================================
+            # UNIQUE AUDIENCE
+            # ==================================================
+
             unique_listeners = {
-                e.listener_id
-                for e in events
-                if e.listener_id
+                event.listener_id
+                for event in events
+                if event.listener_id
             }
 
             session_listeners = {
-                s.listener_id
-                for s in sessions
-                if s.listener_id
+                session.listener_id
+                for session in sessions
+                if session.listener_id
             }
 
-            unique_listeners.update(session_listeners)
-
-            total_listening_seconds = sum(
-                max(0.0, float(s.position or 0.0))
-                for s in sessions
+            unique_listeners.update(
+                session_listeners
             )
 
-            completion_rate = (
-                round(
-                    (len(completion_events) / len(play_events)) * 100,
-                    1,
+            # ==================================================
+            # SESSION LISTENING DEPTH
+            # ==================================================
+
+            session_depth = {}
+
+            for session in sessions:
+
+                duration = max(
+                    0.0,
+                    float(
+                        session.duration or 0.0
+                    ),
                 )
+
+                position = max(
+                    0.0,
+                    float(
+                        session.position or 0.0
+                    ),
+                )
+
+                session_depth[
+                    session.session_id
+                ] = {
+                    "position": min(
+                        position,
+                        duration
+                    )
+                    if duration > 0
+                    else position,
+                    "duration": duration,
+                }
+
+            total_listening_seconds = sum(
+                item["position"]
+                for item in session_depth.values()
+            )
+
+            total_session_duration = sum(
+                item["duration"]
+                for item in session_depth.values()
+                if item["duration"] > 0
+            )
+
+            average_session_seconds = (
+                total_listening_seconds
+                / len(session_depth)
+                if session_depth
+                else 0.0
+            )
+
+            average_listening_depth = (
+                (
+                    total_listening_seconds
+                    / total_session_duration
+                )
+                * 100
+                if total_session_duration > 0
+                else 0.0
+            )
+
+            # ==================================================
+            # COMPLETION RATE
+            # ==================================================
+
+            completion_rate = (
+                (
+                    len(completion_events)
+                    / len(play_events)
+                )
+                * 100
                 if play_events
                 else 0.0
             )
 
-            # --------------------------------------------------
-            # LAST 30 DAYS
-            # --------------------------------------------------
+            # ==================================================
+            # 30-DAY WINDOW
+            # ==================================================
 
             now = datetime.now(timezone.utc)
-            thirty_days_ago = now - timedelta(days=30)
+
+            thirty_days_ago = (
+                now - timedelta(days=30)
+            )
 
             recent_events = [
-                e for e in events
-                if e.occurred_at
-                and e.occurred_at >= thirty_days_ago
+                event
+                for event in events
+                if (
+                    event.occurred_at
+                    and event.occurred_at
+                    >= thirty_days_ago
+                )
             ]
 
-            # --------------------------------------------------
+            recent_sessions = [
+                session
+                for session in sessions
+                if (
+                    session.started_at
+                    and session.started_at
+                    >= thirty_days_ago
+                )
+            ]
+
+            # ==================================================
             # DAILY ACTIVITY
-            # --------------------------------------------------
+            # ==================================================
 
             daily = {}
 
             for event in recent_events:
 
-                if event.occurred_at is None:
+                if not event.occurred_at:
                     continue
 
-                day = event.occurred_at.date().isoformat()
+                day = (
+                    event.occurred_at
+                    .date()
+                    .isoformat()
+                )
 
                 if day not in daily:
                     daily[day] = {
@@ -295,23 +406,26 @@ class CreatorAnalyticsService:
                         "downloads": 0,
                     }
 
+                item = daily[day]
+
                 if event.event_type == "play":
-                    daily[day]["plays"] += 1
+                    item["plays"] += 1
 
                 if event.listener_id:
-                    daily[day]["listeners"].add(
+                    item["listeners"].add(
                         event.listener_id
                     )
 
                 if event.event_type == "complete":
-                    daily[day]["completions"] += 1
+                    item["completions"] += 1
 
                 if event.event_type == "download":
-                    daily[day]["downloads"] += 1
+                    item["downloads"] += 1
 
             activity = []
 
             for day in sorted(daily.keys()):
+
                 item = daily[day]
 
                 activity.append(
@@ -321,20 +435,317 @@ class CreatorAnalyticsService:
                         "unique_listeners": len(
                             item["listeners"]
                         ),
-                        "completions": item["completions"],
-                        "downloads": item["downloads"],
+                        "completions": item[
+                            "completions"
+                        ],
+                        "downloads": item[
+                            "downloads"
+                        ],
                     }
                 )
 
-            # --------------------------------------------------
+            # ==================================================
+            # AUDIENCE LOYALTY
+            # ==================================================
+            #
+            # A listener with more than one recorded play
+            # is considered returning.
+            #
+            # This is based entirely on real listener IDs.
+            # ==================================================
+
+            plays_by_listener = defaultdict(int)
+
+            for event in play_events:
+
+                if event.listener_id:
+                    plays_by_listener[
+                        event.listener_id
+                    ] += 1
+
+            returning_listeners = {
+                listener_id
+                for listener_id, count
+                in plays_by_listener.items()
+                if count > 1
+            }
+
+            new_listeners = {
+                listener_id
+                for listener_id, count
+                in plays_by_listener.items()
+                if count == 1
+            }
+
+            total_play_listeners = len(
+                plays_by_listener
+            )
+
+            returning_listener_rate = (
+                (
+                    len(returning_listeners)
+                    / total_play_listeners
+                )
+                * 100
+                if total_play_listeners
+                else 0.0
+            )
+
+            new_listener_rate = (
+                (
+                    len(new_listeners)
+                    / total_play_listeners
+                )
+                * 100
+                if total_play_listeners
+                else 0.0
+            )
+
+            # ==================================================
+            # REPEAT PLAYS
+            # ==================================================
+
+            repeat_plays = sum(
+                max(
+                    0,
+                    count - 1,
+                )
+                for count
+                in plays_by_listener.values()
+            )
+
+            # ==================================================
+            # LISTENING BY HOUR
+            # ==================================================
+
+            hourly_activity = [
+                {
+                    "hour": hour,
+                    "plays": 0,
+                    "listeners": set(),
+                }
+                for hour in range(24)
+            ]
+
+            for event in recent_events:
+
+                if not event.occurred_at:
+                    continue
+
+                hour = (
+                    event.occurred_at.hour
+                )
+
+                if event.event_type == "play":
+                    hourly_activity[hour][
+                        "plays"
+                    ] += 1
+
+                if event.listener_id:
+                    hourly_activity[hour][
+                        "listeners"
+                    ].add(
+                        event.listener_id
+                    )
+
+            listening_by_hour = [
+                {
+                    "hour": item["hour"],
+                    "plays": item["plays"],
+                    "unique_listeners": len(
+                        item["listeners"]
+                    ),
+                }
+                for item in hourly_activity
+            ]
+
+            # ==================================================
+            # LISTENING BY DAY OF WEEK
+            # ==================================================
+
+            weekday_names = [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday",
+            ]
+
+            weekday_activity = [
+                {
+                    "day": name,
+                    "day_number": index,
+                    "plays": 0,
+                    "listeners": set(),
+                }
+                for index, name
+                in enumerate(weekday_names)
+            ]
+
+            for event in recent_events:
+
+                if not event.occurred_at:
+                    continue
+
+                day_number = (
+                    event.occurred_at.weekday()
+                )
+
+                if event.event_type == "play":
+                    weekday_activity[
+                        day_number
+                    ]["plays"] += 1
+
+                if event.listener_id:
+                    weekday_activity[
+                        day_number
+                    ]["listeners"].add(
+                        event.listener_id
+                    )
+
+            listening_by_day = [
+                {
+                    "day": item["day"],
+                    "day_number": item[
+                        "day_number"
+                    ],
+                    "plays": item["plays"],
+                    "unique_listeners": len(
+                        item["listeners"]
+                    ),
+                }
+                for item in weekday_activity
+            ]
+
+            # ==================================================
+            # RETENTION / ATTENTION
+            # ==================================================
+            #
+            # We calculate retention from the furthest real
+            # playback position recorded for each session.
+            #
+            # This avoids pretending we know what a listener
+            # heard when no playback position was persisted.
+            # ==================================================
+
+            retention_buckets = {
+                "0": 0,
+                "25": 0,
+                "50": 0,
+                "75": 0,
+                "100": 0,
+            }
+
+            retention_sessions = 0
+
+            for session in sessions:
+
+                duration = max(
+                    0.0,
+                    float(
+                        session.duration or 0.0
+                    ),
+                )
+
+                if duration <= 0:
+                    continue
+
+                position = min(
+                    max(
+                        0.0,
+                        float(
+                            session.position or 0.0
+                        ),
+                    ),
+                    duration,
+                )
+
+                progress = (
+                    position / duration
+                ) * 100
+
+                retention_sessions += 1
+
+                if progress >= 25:
+                    retention_buckets[
+                        "25"
+                    ] += 1
+
+                if progress >= 50:
+                    retention_buckets[
+                        "50"
+                    ] += 1
+
+                if progress >= 75:
+                    retention_buckets[
+                        "75"
+                    ] += 1
+
+                if progress >= 95:
+                    retention_buckets[
+                        "100"
+                    ] += 1
+
+            retention = []
+
+            for percentage in (
+                0,
+                25,
+                50,
+                75,
+                100,
+            ):
+
+                if percentage == 0:
+                    rate = (
+                        100.0
+                        if retention_sessions
+                        else 0.0
+                    )
+                else:
+                    rate = (
+                        (
+                            retention_buckets[
+                                str(percentage)
+                            ]
+                            / retention_sessions
+                        )
+                        * 100
+                        if retention_sessions
+                        else 0.0
+                    )
+
+                retention.append(
+                    {
+                        "percentage": percentage,
+                        "listeners": (
+                            retention_sessions
+                            if percentage == 0
+                            else retention_buckets[
+                                str(percentage)
+                            ]
+                        ),
+                        "rate": round(
+                            rate,
+                            1,
+                        ),
+                    }
+                )
+
+            # ==================================================
             # SHOW PERFORMANCE
-            # --------------------------------------------------
+            # ==================================================
 
             show_data = {}
 
             for event in events:
 
-                show_id = event.show_id or "unknown"
+                show_id = (
+                    event.show_id
+                    or "unknown"
+                )
 
                 if show_id not in show_data:
                     show_data[show_id] = {
@@ -365,44 +776,91 @@ class CreatorAnalyticsService:
 
             for item in show_data.values():
 
+                show_completion_rate = (
+                    (
+                        item["completions"]
+                        / item["plays"]
+                    )
+                    * 100
+                    if item["plays"]
+                    else 0.0
+                )
+
                 shows.append(
                     {
-                        "show_id": item["show_id"],
+                        "show_id": item[
+                            "show_id"
+                        ],
                         "plays": item["plays"],
                         "unique_listeners": len(
                             item["listeners"]
                         ),
-                        "completions": item["completions"],
-                        "downloads": item["downloads"],
+                        "completions": item[
+                            "completions"
+                        ],
+                        "downloads": item[
+                            "downloads"
+                        ],
+                        "completion_rate": round(
+                            show_completion_rate,
+                            1,
+                        ),
                     }
                 )
 
             shows.sort(
-                key=lambda x: x["plays"],
+                key=lambda item: item[
+                    "plays"
+                ],
                 reverse=True,
             )
 
-            # --------------------------------------------------
+            # ==================================================
             # EPISODE PERFORMANCE
-            # --------------------------------------------------
+            # ==================================================
+            #
+            # IMPORTANT:
+            # Key is show_id + episode_id.
+            #
+            # This prevents:
+            #
+            # Kyamagero Daily / 001
+            #
+            # from colliding with:
+            #
+            # Man Cave UG / 001
+            # ==================================================
 
             episode_data = {}
 
             for event in events:
 
-                episode_id = event.episode_id or "unknown"
+                show_id = (
+                    event.show_id
+                    or "unknown"
+                )
 
-                if episode_id not in episode_data:
-                    episode_data[episode_id] = {
+                episode_id = (
+                    event.episode_id
+                    or "unknown"
+                )
+
+                key = (
+                    show_id,
+                    episode_id,
+                )
+
+                if key not in episode_data:
+                    episode_data[key] = {
                         "episode_id": episode_id,
-                        "show_id": event.show_id,
+                        "show_id": show_id,
                         "plays": 0,
                         "listeners": set(),
                         "completions": 0,
                         "downloads": 0,
                     }
 
-                item = episode_data[episode_id]
+                item = episode_data[key]
 
                 if event.event_type == "play":
                     item["plays"] += 1
@@ -422,31 +880,57 @@ class CreatorAnalyticsService:
 
             for item in episode_data.values():
 
+                episode_completion_rate = (
+                    (
+                        item["completions"]
+                        / item["plays"]
+                    )
+                    * 100
+                    if item["plays"]
+                    else 0.0
+                )
+
                 episodes.append(
                     {
-                        "episode_id": item["episode_id"],
-                        "show_id": item["show_id"],
+                        "episode_id": item[
+                            "episode_id"
+                        ],
+                        "show_id": item[
+                            "show_id"
+                        ],
                         "plays": item["plays"],
                         "unique_listeners": len(
                             item["listeners"]
                         ),
-                        "completions": item["completions"],
-                        "downloads": item["downloads"],
+                        "completions": item[
+                            "completions"
+                        ],
+                        "downloads": item[
+                            "downloads"
+                        ],
+                        "completion_rate": round(
+                            episode_completion_rate,
+                            1,
+                        ),
                     }
                 )
 
             episodes.sort(
-                key=lambda x: x["plays"],
+                key=lambda item: item[
+                    "plays"
+                ],
                 reverse=True,
             )
 
-            # --------------------------------------------------
+            # ==================================================
             # RECENT ACTIVITY
-            # --------------------------------------------------
+            # ==================================================
 
             recent_activity = []
 
-            for event in reversed(events[-25:]):
+            for event in reversed(
+                events[-25:]
+            ):
 
                 recent_activity.append(
                     {
@@ -464,20 +948,114 @@ class CreatorAnalyticsService:
                     }
                 )
 
-            # --------------------------------------------------
+            # ==================================================
+            # LISTENER JOURNEY
+            # ==================================================
+            #
+            # We only count a journey when the database has
+            # enough actual evidence.
+            #
+            # A listener who has played more than one episode
+            # has demonstrably explored the catalogue.
+            # ==================================================
+
+            episodes_per_listener = defaultdict(
+                set
+            )
+
+            for event in play_events:
+
+                if (
+                    event.listener_id
+                    and event.show_id
+                    and event.episode_id
+                ):
+                    episodes_per_listener[
+                        event.listener_id
+                    ].add(
+                        (
+                            event.show_id,
+                            event.episode_id,
+                        )
+                    )
+
+            catalogue_explorers = {
+                listener_id
+                for listener_id, episode_set
+                in episodes_per_listener.items()
+                if len(episode_set) > 1
+            }
+
+            catalogue_exploration_rate = (
+                (
+                    len(catalogue_explorers)
+                    / total_play_listeners
+                )
+                * 100
+                if total_play_listeners
+                else 0.0
+            )
+
+            # ==================================================
+            # TOP LISTENING HOUR
+            # ==================================================
+
+            top_hour = None
+
+            if listening_by_hour:
+                top_hour = max(
+                    listening_by_hour,
+                    key=lambda item: item[
+                        "plays"
+                    ],
+                )
+
+                if top_hour["plays"] == 0:
+                    top_hour = None
+
+            # ==================================================
+            # TOP LISTENING DAY
+            # ==================================================
+
+            top_day = None
+
+            if listening_by_day:
+                top_day = max(
+                    listening_by_day,
+                    key=lambda item: item[
+                        "plays"
+                    ],
+                )
+
+                if top_day["plays"] == 0:
+                    top_day = None
+
+            # ==================================================
             # RETURN
-            # --------------------------------------------------
+            # ==================================================
 
             return {
+                # ------------------------------------------------
+                # IDENTITY
+                # ------------------------------------------------
+
                 "creator_id": creator_id,
 
-                "total_plays": len(play_events),
+                # ------------------------------------------------
+                # CORE
+                # ------------------------------------------------
+
+                "total_plays": len(
+                    play_events
+                ),
 
                 "unique_listeners": len(
                     unique_listeners
                 ),
 
-                "downloads": len(download_events),
+                "downloads": len(
+                    download_events
+                ),
 
                 "completions": len(
                     completion_events
@@ -487,19 +1065,119 @@ class CreatorAnalyticsService:
                     total_listening_seconds
                 ),
 
-                "completion_rate": completion_rate,
+                "completion_rate": round(
+                    completion_rate,
+                    1,
+                ),
+
+                # ------------------------------------------------
+                # AUDIENCE LOYALTY
+                # ------------------------------------------------
+
+                "audience": {
+                    "total_listeners": len(
+                        unique_listeners
+                    ),
+                    "play_listeners": (
+                        total_play_listeners
+                    ),
+                    "new_listeners": len(
+                        new_listeners
+                    ),
+                    "returning_listeners": len(
+                        returning_listeners
+                    ),
+                    "new_listener_rate": round(
+                        new_listener_rate,
+                        1,
+                    ),
+                    "returning_listener_rate": round(
+                        returning_listener_rate,
+                        1,
+                    ),
+                    "repeat_plays": repeat_plays,
+                },
+
+                # ------------------------------------------------
+                # LISTENING BEHAVIOUR
+                # ------------------------------------------------
+
+                "listening": {
+                    "total_seconds": (
+                        total_listening_seconds
+                    ),
+                    "average_session_seconds": round(
+                        average_session_seconds,
+                        1,
+                    ),
+                    "average_listening_depth": round(
+                        average_listening_depth,
+                        1,
+                    ),
+                    "retention_sessions": (
+                        retention_sessions
+                    ),
+                    "retention": retention,
+                },
+
+                # ------------------------------------------------
+                # DISCOVERY / CATALOGUE BEHAVIOUR
+                # ------------------------------------------------
+
+                "discovery": {
+                    "catalogue_explorers": len(
+                        catalogue_explorers
+                    ),
+                    "catalogue_exploration_rate": round(
+                        catalogue_exploration_rate,
+                        1,
+                    ),
+                },
+
+                # ------------------------------------------------
+                # TIME BEHAVIOUR
+                # ------------------------------------------------
+
+                "time_behaviour": {
+                    "by_hour": listening_by_hour,
+                    "by_day": listening_by_day,
+                    "top_hour": top_hour,
+                    "top_day": top_day,
+                },
+
+                # ------------------------------------------------
+                # PERIOD
+                # ------------------------------------------------
 
                 "period": {
                     "days": 30,
-                    "from": thirty_days_ago.isoformat(),
+                    "from": (
+                        thirty_days_ago.isoformat()
+                    ),
                     "to": now.isoformat(),
                 },
 
+                # ------------------------------------------------
+                # DAILY ACTIVITY
+                # ------------------------------------------------
+
                 "activity": activity,
+
+                # ------------------------------------------------
+                # SHOWS
+                # ------------------------------------------------
 
                 "shows": shows,
 
+                # ------------------------------------------------
+                # EPISODES
+                # ------------------------------------------------
+
                 "episodes": episodes,
+
+                # ------------------------------------------------
+                # RECENT ACTIVITY
+                # ------------------------------------------------
 
                 "recent_activity": recent_activity,
             }
@@ -519,6 +1197,7 @@ class CreatorAnalyticsService:
         db = SessionLocal()
 
         try:
+
             cutoff = (
                 datetime.now(timezone.utc)
                 - timedelta(seconds=45)
@@ -527,38 +1206,60 @@ class CreatorAnalyticsService:
             query = (
                 db.query(ListenerSession)
                 .filter(
-                    ListenerSession.creator_id == creator_id,
-                    ListenerSession.last_heartbeat >= cutoff,
-                    ListenerSession.ended_at.is_(None),
+                    ListenerSession.creator_id
+                    == creator_id,
+
+                    ListenerSession.last_heartbeat
+                    >= cutoff,
+
+                    ListenerSession.ended_at.is_(
+                        None
+                    ),
                 )
             )
 
             if episode_id:
+
                 query = query.filter(
-                    ListenerSession.episode_id == episode_id
+                    ListenerSession.episode_id
+                    == episode_id
                 )
 
             sessions = query.all()
 
             return {
                 "creator_id": creator_id,
+
                 "episode_id": episode_id,
-                "live_listeners": len(sessions),
+
+                "live_listeners": len(
+                    sessions
+                ),
 
                 "listeners": [
                     {
-                        "listener_id": s.listener_id,
-                        "episode_id": s.episode_id,
-                        "show_id": s.show_id,
-                        "position": s.position,
-                        "duration": s.duration,
+                        "listener_id": (
+                            session.listener_id
+                        ),
+                        "episode_id": (
+                            session.episode_id
+                        ),
+                        "show_id": (
+                            session.show_id
+                        ),
+                        "position": (
+                            session.position
+                        ),
+                        "duration": (
+                            session.duration
+                        ),
                         "last_heartbeat": (
-                            s.last_heartbeat.isoformat()
-                            if s.last_heartbeat
+                            session.last_heartbeat.isoformat()
+                            if session.last_heartbeat
                             else None
                         ),
                     }
-                    for s in sessions
+                    for session in sessions
                 ],
             }
 
@@ -566,4 +1267,6 @@ class CreatorAnalyticsService:
             db.close()
 
 
-creator_analytics = CreatorAnalyticsService()
+creator_analytics = (
+    CreatorAnalyticsService()
+)
