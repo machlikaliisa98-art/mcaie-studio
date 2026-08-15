@@ -6,7 +6,7 @@ from sqlalchemy import or_
 from sqlalchemy import select
 
 from app.database.session import SessionLocal
-from app.dependencies.auth import get_current_creator
+from app.dependencies.auth import get_current_account
 from app.models.creator import Creator
 from app.schemas.auth import LoginRequest
 from app.schemas.creator import CreatorCreate
@@ -29,11 +29,6 @@ async def register(
     db = SessionLocal()
 
     try:
-
-        #
-        # Email already exists
-        #
-
         existing = db.scalar(
             select(Creator).where(
                 Creator.email == request.email
@@ -46,10 +41,6 @@ async def register(
                 detail="Email already registered.",
             )
 
-        #
-        # Username already exists
-        #
-
         existing = db.scalar(
             select(Creator).where(
                 Creator.username == request.username
@@ -61,10 +52,6 @@ async def register(
                 status_code=409,
                 detail="Username already taken.",
             )
-
-        #
-        # Create creator
-        #
 
         creator = Creator(
             full_name=request.full_name,
@@ -81,18 +68,15 @@ async def register(
         db.commit()
         db.refresh(creator)
 
-        #
-        # Create JWT
-        #
-
         access_token = create_access_token(
-            str(creator.id)
+            f"creator:{creator.id}"
         )
 
         return {
             "success": True,
             "access_token": access_token,
             "token_type": "bearer",
+            "account_type": "creator",
             "creator": {
                 "id": creator.id,
                 "full_name": creator.full_name,
@@ -116,11 +100,6 @@ async def login(
     db = SessionLocal()
 
     try:
-
-        #
-        # Find creator using email OR username
-        #
-
         creator = db.scalar(
             select(Creator).where(
                 or_(
@@ -130,44 +109,42 @@ async def login(
             )
         )
 
-        if creator is None:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid email or username.",
+        if creator is not None:
+
+            if not verify_password(
+                request.password,
+                creator.password_hash,
+            ):
+                raise HTTPException(
+                    status_code=401,
+                    detail="Incorrect password.",
+                )
+
+            access_token = create_access_token(
+                f"creator:{creator.id}"
             )
 
-        #
-        # Verify password
-        #
+            return {
+                "success": True,
+                "access_token": access_token,
+                "token_type": "bearer",
+                "account_type": "creator",
+                "creator": {
+                    "id": creator.id,
+                    "full_name": creator.full_name,
+                    "username": creator.username,
+                    "email": creator.email,
+                    "country": creator.country,
+                    "creator_category": creator.creator_category,
+                    "verified": creator.verified,
+                    "active": creator.active,
+                },
+            }
 
-        if not verify_password(
-            request.password,
-            creator.password_hash,
-        ):
-            raise HTTPException(
-                status_code=401,
-                detail="Incorrect password.",
-            )
-
-        access_token = create_access_token(
-            str(creator.id)
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or username.",
         )
-
-        return {
-            "success": True,
-            "access_token": access_token,
-            "token_type": "bearer",
-            "creator": {
-                "id": creator.id,
-                "full_name": creator.full_name,
-                "username": creator.username,
-                "email": creator.email,
-                "country": creator.country,
-                "creator_category": creator.creator_category,
-                "verified": creator.verified,
-                "active": creator.active,
-            },
-        }
 
     finally:
         db.close()
@@ -175,18 +152,23 @@ async def login(
 
 @router.get("/me")
 async def me(
-    creator: Creator = Depends(
-        get_current_creator,
-    ),
+    account=Depends(get_current_account),
 ):
-    return {
-        "id": creator.id,
-        "full_name": creator.full_name,
-        "username": creator.username,
-        "email": creator.email,
-        "country": creator.country,
-        "creator_category": creator.creator_category,
-        "verified": creator.verified,
-        "active": creator.active,
-        "created_at": creator.created_at,
-    }
+    if isinstance(account, Creator):
+        return {
+            "authenticated": True,
+            "account_type": "creator",
+            "creator": {
+                "id": account.id,
+                "full_name": account.full_name,
+                "username": account.username,
+                "email": account.email,
+                "country": account.country,
+                "creator_category": account.creator_category,
+                "verified": account.verified,
+                "active": account.active,
+                "created_at": account.created_at,
+            },
+        }
+
+    return accounts
