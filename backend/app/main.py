@@ -1,10 +1,11 @@
-from fastapi import FastAPI
+﻿from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.analytics import router as analytics_router
 from app.api.creator_analytics import router as creator_analytics_router
 from app.api.audio import router as audio_router
 from app.api.auth import router as auth_router
+from app.api.comments import router as comments_router
 from app.api.dashboard import router as dashboard_router
 from app.api.episodes import router as episodes_router
 from app.api.jobs import router as jobs_router
@@ -34,81 +35,74 @@ app.add_middleware(
     CORSMiddleware,
 
     allow_origins=[
-        # Local development
         "http://localhost:3000",
         "http://127.0.0.1:3000",
 
-        # Northflank production frontend
         "https://p01--mcaie-web--k2vfhz79t8sy.code.run",
     ],
 
     allow_credentials=True,
-
     allow_methods=["*"],
-
     allow_headers=["*"],
 )
 
 
 # ==========================================================
-# Authentication
+# AUTHENTICATION
 # ==========================================================
 
 app.include_router(auth_router)
 
 
 # ==========================================================
-# Upload & Production
+# UPLOAD & PRODUCTION
 # ==========================================================
 
 app.include_router(upload_router)
-
 app.include_router(studio_router)
-
 app.include_router(jobs_router)
 
 
 # ==========================================================
-# Library, Shows & Playback
+# LIBRARY, SHOWS & PLAYBACK
 # ==========================================================
 
 app.include_router(library_router)
-
 app.include_router(episodes_router)
-
 app.include_router(playback_router)
-
 app.include_router(shows_router)
-
 app.include_router(audio_router)
 
 
 # ==========================================================
-# Discovery
+# COMMENTS
+# ==========================================================
+
+app.include_router(comments_router)
+
+
+# ==========================================================
+# DISCOVERY
 # ==========================================================
 
 app.include_router(search_router)
-
 app.include_router(analytics_router)
-
 app.include_router(creator_analytics_router)
-
 app.include_router(dashboard_router)
 
 
 # ==========================================================
-# Creator Workspace
+# CREATOR WORKSPACE
 # ==========================================================
 
 app.include_router(projects_router)
 
 
 # ==========================================================
-# Live Conversations
+# LIVE CONVERSATIONS
 # ==========================================================
 
 app.include_router(sessions_router)
-
 app.include_router(websocket_router)
 
 
@@ -118,7 +112,6 @@ app.include_router(websocket_router)
 
 @app.get("/")
 async def root():
-
     return {
         "application": "FONS",
         "engine": "MCAIE",
@@ -132,9 +125,7 @@ async def root():
 # ==========================================================
 
 @app.get("/health")
-
 async def health():
-
     return {
         "status": "healthy",
         "application": "FONS",
