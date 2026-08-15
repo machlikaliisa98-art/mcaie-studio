@@ -1,0 +1,419 @@
+.shell {
+  min-height: 100vh;
+  background: #f6f1e8;
+  color: #153848;
+  display: flex;
+  overflow-x: hidden;
+}
+
+.sidebar {
+  width: 270px;
+  min-width: 270px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  background: #153848;
+  color: #f6f1e8;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.logoArea {
+  height: 112px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.logo {
+  width: 170px;
+  height: auto;
+  object-fit: contain;
+}
+
+.navigation {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 16px;
+}
+
+.navigationGroup {
+  margin-bottom: 30px;
+}
+
+.navigationLabel {
+  padding: 0 14px;
+  margin-bottom: 10px;
+  color: rgba(246,241,232,.42);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  margin-bottom: 5px;
+  border-radius: 14px;
+  color: rgba(246,241,232,.78);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition:
+    background .2s ease,
+    color .2s ease,
+    transform .2s ease;
+}
+
+.navItem:hover {
+  background: rgba(255,255,255,.07);
+  color: #ffffff;
+  transform: translateX(2px);
+}
+
+.navItemActive {
+  background: #f6f1e8;
+  color: #153848;
+}
+
+.navIcon {
+  width: 22px;
+  min-width: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 16px;
+}
+
+.profileArea {
+  padding: 18px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 14px;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 50%;
+  background: #b48a45;
+  color: #153848;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.profileText {
+  min-width: 0;
+  flex: 1;
+}
+
+.profileName {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profileType {
+  margin-top: 3px;
+  font-size: 11px;
+  color: rgba(246,241,232,.58);
+}
+
+.logoutButton {
+  margin-top: 10px;
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.1);
+  background: transparent;
+  color: rgba(246,241,232,.72);
+  padding: 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.logoutButton:hover {
+  background: rgba(255,255,255,.06);
+  color: #ffffff;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  min-height: 82px;
+  padding: 16px 34px;
+  background: rgba(246,241,232,.94);
+  border-bottom: 1px solid #e7ded2;
+  backdrop-filter: blur(18px);
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.mobileLogo {
+  display: none;
+}
+
+.search {
+  flex: 1;
+  max-width: 650px;
+  height: 48px;
+  background: #ffffff;
+  border: 1px solid #e6ddd0;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 12px;
+}
+
+.searchIcon {
+  color: #7a7a7a;
+  font-size: 18px;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #153848;
+  font-size: 14px;
+}
+
+.searchInput::placeholder {
+  color: #999;
+}
+
+.topbarActions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.iconButton {
+  width: 44px;
+  height: 44px;
+  border: 1px solid #e6ddd0;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #153848;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.userChip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 12px 5px 5px;
+  border-radius: 999px;
+  border: 1px solid #e6ddd0;
+  background: #ffffff;
+  text-decoration: none;
+  color: #153848;
+}
+
+.userChipAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #153848;
+  color: #f6f1e8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.userChipName {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 38px 42px 100px;
+  box-sizing: border-box;
+}
+
+.mobileBottom {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  .sidebar {
+    width: 230px;
+    min-width: 230px;
+  }
+
+  .content {
+    padding-left: 28px;
+    padding-right: 28px;
+  }
+
+  .topbar {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .userChipName {
+    display: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .shell {
+    display: block;
+    padding-bottom: 76px;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .main {
+    min-height: 100vh;
+  }
+
+  .topbar {
+    min-height: 68px;
+    padding: 10px 16px;
+    gap: 10px;
+  }
+
+  .mobileLogo {
+    display: block;
+    flex-shrink: 0;
+  }
+
+  .mobileLogo img {
+    width: 92px;
+    height: auto;
+  }
+
+  .search {
+    height: 44px;
+    padding: 0 14px;
+  }
+
+  .searchInput {
+    font-size: 13px;
+  }
+
+  .topbarActions {
+    gap: 6px;
+  }
+
+  .topbarActions .iconButton {
+    width: 40px;
+    height: 40px;
+  }
+
+  .topbarActions .userChip {
+    display: none;
+  }
+
+  .content {
+    padding: 24px 16px 50px;
+  }
+
+  .mobileBottom {
+    position: fixed;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 68px;
+    background: rgba(21,56,72,.98);
+    border-top: 1px solid rgba(255,255,255,.08);
+    z-index: 200;
+    padding: 4px 8px;
+  }
+
+  .mobileNavItem {
+    min-width: 58px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    color: rgba(246,241,232,.62);
+    text-decoration: none;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .mobileNavItemActive {
+    color: #f6f1e8;
+    background: rgba(255,255,255,.08);
+  }
+
+  .mobileNavIcon {
+    font-size: 17px;
+    line-height: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .mobileLogo {
+    display: none;
+  }
+
+  .topbar {
+    padding: 10px 12px;
+  }
+
+  .search {
+    width: 100%;
+  }
+
+  .content {
+    padding-left: 13px;
+    padding-right: 13px;
+  }
+
+  .topbarActions .iconButton:first-child {
+    display: none;
+  }
+}
