@@ -2,184 +2,292 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
-const menu = [
-  { title: "Home", href: "/dashboard", icon: "⌂" },
-  { title: "Explore", href: "/explore", icon: "◈" },
-  { title: "Creator Studio", href: "/studio", icon: "◉" },
-  { title: "Conversations", href: "/conversations", icon: "◌" },
-  { title: "Episodes", href: "/episodes", icon: "▶" },
-  { title: "Collections", href: "/collections", icon: "▣" },
-  { title: "Audience", href: "/audience", icon: "◍" },
-  { title: "Analytics", href: "/analytics", icon: "◔" },
-  { title: "Notifications", href: "/notifications", icon: "🔔" },
-  { title: "Messages", href: "/messages", icon: "✉" },
-  { title: "Profile", href: "/profile", icon: "☺" },
-  { title: "Settings", href: "/settings", icon: "⚙" },
+import styles from "./FonsAppShell.module.css";
+
+type Creator = {
+  full_name?: string;
+  username?: string;
+  creator_category?: string;
+  verified?: boolean;
+};
+
+const listenerNavigation = [
+  {
+    label: "Home",
+    href: "/dashboard",
+    icon: "⌂",
+  },
+  {
+    label: "Explore",
+    href: "/search",
+    icon: "⌕",
+  },
+  {
+    label: "Library",
+    href: "/library",
+    icon: "▣",
+  },
+  {
+    label: "Episodes",
+    href: "/episodes",
+    icon: "▶",
+  },
+  {
+    label: "Live",
+    href: "/live",
+    icon: "◉",
+  },
+];
+
+const creatorNavigation = [
+  {
+    label: "Home",
+    href: "/dashboard",
+    icon: "⌂",
+  },
+  {
+    label: "Explore",
+    href: "/search",
+    icon: "⌕",
+  },
+  {
+    label: "Library",
+    href: "/library",
+    icon: "▣",
+  },
+  {
+    label: "Episodes",
+    href: "/episodes",
+    icon: "▶",
+  },
+  {
+    label: "Creator Studio",
+    href: "/studio",
+    icon: "✦",
+  },
+  {
+    label: "Analytics",
+    href: "/analytics",
+    icon: "◫",
+  },
+  {
+    label: "Live",
+    href: "/live",
+    icon: "◉",
+  },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
 
+  const [creator, setCreator] = useState<Creator | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("creator");
+
+      if (stored) {
+        setCreator(JSON.parse(stored));
+      }
+    } catch {
+      setCreator(null);
+    }
+  }, []);
+
+  const isCreator = Boolean(creator);
+
+  const navigation = useMemo(() => {
+    return isCreator
+      ? creatorNavigation
+      : listenerNavigation;
+  }, [isCreator]);
+
+  function isActive(href: string) {
+    if (href === "/dashboard") {
+      return pathname === "/dashboard";
+    }
+
+    return (
+      pathname === href ||
+      pathname.startsWith(`${href}/`)
+    );
+  }
+
+  function handleLogout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("creator");
+
+    window.location.href = "/login";
+  }
+
+  const initials = creator?.full_name
+    ? creator.full_name
+        .split(" ")
+        .map((part) => part.charAt(0))
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "F";
+
   return (
-    <aside
-      style={{
-        width: 320,
-        minWidth: 320,
-        background: "#153848",
-        color: "#F6F1E8",
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh",
-        position: "sticky",
-        top: 0,
-      }}
-    >
-      {/* ===================================================== */}
-      {/* Logo */}
-      {/* ===================================================== */}
-
-      <div
-        style={{
-          height: 165,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "18px 18px 14px",
-          borderBottom: "1px solid rgba(255,255,255,.08)",
-          flexShrink: 0,
-        }}
-      >
-        <img
-          src="/fons-logo.png"
-          alt="FONS"
-          style={{
-            width: 285,
-            maxWidth: "100%",
-            height: "auto",
-            display: "block",
-            objectFit: "contain",
-          }}
-        />
-      </div>
-
-      {/* ===================================================== */}
-      {/* Navigation */}
-      {/* ===================================================== */}
-
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "18px 16px",
-        }}
-      >
-        {menu.map((item) => {
-          const active = pathname === item.href;
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{
-                textDecoration: "none",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 16,
-                  marginBottom: 8,
-                  padding: "15px 18px",
-                  borderRadius: 18,
-                  background: active ? "#F6F1E8" : "transparent",
-                  color: active ? "#153848" : "#F6F1E8",
-                  transition: ".2s",
-                  fontWeight: active ? 700 : 500,
-                }}
-              >
-                <span
-                  style={{
-                    width: 24,
-                    textAlign: "center",
-                    fontSize: 18,
-                  }}
-                >
-                  {item.icon}
-                </span>
-
-                <span>{item.title}</span>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* ===================================================== */}
-      {/* User */}
-      {/* ===================================================== */}
-
-      <div
-        style={{
-          borderTop: "1px solid rgba(255,255,255,.08)",
-          padding: 24,
-        }}
-      >
-        <div
+    <aside className={styles.sidebar}>
+      <div className={styles.logoArea}>
+        <Link
+          href="/landing"
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 14,
-            marginBottom: 22,
           }}
         >
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: "50%",
-              background: "#F6F1E8",
-              overflow: "hidden",
-              flexShrink: 0,
-            }}
+          <img
+            src="/fons-logo.png"
+            alt="FONS"
+            className={styles.logo}
           />
+        </Link>
+      </div>
 
-          <div>
-            <div
-              style={{
-                fontWeight: 700,
-                fontSize: 16,
-              }}
-            >
-              Andrew Kyamagero
-            </div>
-
-            <div
-              style={{
-                color: "rgba(246,241,232,.70)",
-                fontSize: 13,
-              }}
-            >
-              Verified Creator
-            </div>
+      <nav className={styles.navigation}>
+        <div className={styles.navigationGroup}>
+          <div className={styles.navigationLabel}>
+            FONS
           </div>
+
+          {navigation.map((item) => {
+            const active = isActive(item.href);
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`${styles.navItem} ${
+                  active
+                    ? styles.navItemActive
+                    : ""
+                }`}
+              >
+                <span className={styles.navIcon}>
+                  {item.icon}
+                </span>
+
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </div>
 
-        <button
-          style={{
-            width: "100%",
-            background: "#B48A45",
-            color: "#153848",
-            border: "none",
-            padding: "15px",
-            borderRadius: 16,
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
-        >
-          Logout
-        </button>
+        {isCreator && (
+          <div className={styles.navigationGroup}>
+            <div className={styles.navigationLabel}>
+              Creator
+            </div>
+
+            <Link
+              href="/creators/andrew"
+              className={`${styles.navItem} ${
+                pathname.startsWith("/creators/")
+                  ? styles.navItemActive
+                  : ""
+              }`}
+            >
+              <span className={styles.navIcon}>
+                ◉
+              </span>
+
+              <span>Creator Page</span>
+            </Link>
+
+            <Link
+              href="/projects"
+              className={`${styles.navItem} ${
+                pathname.startsWith("/projects")
+                  ? styles.navItemActive
+                  : ""
+              }`}
+            >
+              <span className={styles.navIcon}>
+                ◇
+              </span>
+
+              <span>Projects</span>
+            </Link>
+          </div>
+        )}
+
+        <div className={styles.navigationGroup}>
+          <div className={styles.navigationLabel}>
+            Account
+          </div>
+
+          <Link
+            href="/settings"
+            className={`${styles.navItem} ${
+              pathname.startsWith("/settings")
+                ? styles.navItemActive
+                : ""
+            }`}
+          >
+            <span className={styles.navIcon}>
+              ⚙
+            </span>
+
+            <span>Settings</span>
+          </Link>
+        </div>
+      </nav>
+
+      <div className={styles.profileArea}>
+        {creator ? (
+          <>
+            <Link
+              href="/creators/andrew"
+              style={{
+                textDecoration: "none",
+                color: "inherit",
+              }}
+            >
+              <div className={styles.profile}>
+                <div className={styles.avatar}>
+                  {initials}
+                </div>
+
+                <div className={styles.profileText}>
+                  <div className={styles.profileName}>
+                    {creator.full_name ||
+                      "FONS Creator"}
+                  </div>
+
+                  <div className={styles.profileType}>
+                    {creator.verified
+                      ? "Verified Creator"
+                      : "Creator"}
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            <button
+              type="button"
+              className={styles.logoutButton}
+              onClick={handleLogout}
+            >
+              Sign out
+            </button>
+          </>
+        ) : (
+          <Link
+            href="/login"
+            className={styles.navItem}
+          >
+            <span className={styles.navIcon}>
+              →
+            </span>
+
+            <span>Sign in</span>
+          </Link>
+        )}
       </div>
     </aside>
   );

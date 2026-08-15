@@ -1,25 +1,16 @@
 "use client";
 
-import Link from "next/link";
+type Props = {
+  showTitle?: string;
+  programmeTitle?: string;
+  episodeCount?: number;
+};
 
-const collections = [
-  {
-    title: "Kyamagero Daily",
-    description:
-      "Daily reflections, ideas, leadership and conversations about the world around us.",
-    href: "/shows/kyamagero-daily",
-    number: "01",
-  },
-  {
-    title: "Man Cave UG",
-    description:
-      "Long-form discussions, X Spaces, interviews and perspectives from across Uganda.",
-    href: "/shows/man-cave-ug",
-    number: "02",
-  },
-];
-
-export default function CreatorCollections() {
+export default function CreatorCollections({
+  showTitle,
+  programmeTitle,
+  episodeCount,
+}: Props) {
   return (
     <section
       style={{
@@ -40,7 +31,7 @@ export default function CreatorCollections() {
           marginBottom: 12,
         }}
       >
-        Creator library
+        FONS library
       </div>
 
       <h2
@@ -59,87 +50,83 @@ export default function CreatorCollections() {
           marginTop: 25,
         }}
       >
-        {collections.map((collection, index) => (
-          <Link
-            href={collection.href}
-            key={collection.title}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "42px 1fr 35px",
+            gap: 15,
+            alignItems: "center",
+            padding: "15px 0",
+            borderBottom: "1px solid #EAE4DA",
+          }}
+        >
+          <div
             style={{
-              textDecoration: "none",
-              color: "inherit",
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              background: "#F1ECE3",
+              color: "#B48A45",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: 800,
+              fontSize: 12,
             }}
           >
-            <div
+            01
+          </div>
+
+          <div>
+            <strong
               style={{
-                display: "grid",
-                gridTemplateColumns: "42px 1fr 35px",
-                gap: 15,
-                alignItems: "center",
-                padding: "15px 0",
-                borderBottom:
-                  index !== collections.length - 1
-                    ? "1px solid #EAE4DA"
-                    : "none",
+                display: "block",
+                color: "#153848",
+                fontSize: 15,
               }}
             >
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 12,
-                  background: "#F1ECE3",
-                  color: "#B48A45",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 800,
-                  fontSize: 12,
-                }}
-              >
-                {collection.number}
-              </div>
+              {showTitle || "Kyamagero Daily"}
+            </strong>
 
-              <div>
-                <strong
-                  style={{
-                    display: "block",
-                    color: "#153848",
-                    fontSize: 15,
-                  }}
-                >
-                  {collection.title}
-                </strong>
+            <span
+              style={{
+                display: "block",
+                marginTop: 4,
+                color: "#777",
+                fontSize: 12,
+                lineHeight: 1.5,
+              }}
+            >
+              {programmeTitle || "Published programme"}
+            </span>
+          </div>
 
-                <span
-                  style={{
-                    display: "block",
-                    marginTop: 4,
-                    color: "#777",
-                    fontSize: 12,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {collection.description}
-                </span>
-              </div>
+          <span
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: "50%",
+              background: "#153848",
+              color: "#FFFFFF",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 15,
+            }}
+          >
+            →
+          </span>
+        </div>
 
-              <span
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: "50%",
-                  background: "#153848",
-                  color: "#FFFFFF",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 15,
-                }}
-              >
-                →
-              </span>
-            </div>
-          </Link>
-        ))}
+        <div
+          style={{
+            paddingTop: 18,
+            color: "#777",
+            fontSize: 13,
+          }}
+        >
+          {episodeCount ?? 0} published episodes
+        </div>
       </div>
     </section>
   );
